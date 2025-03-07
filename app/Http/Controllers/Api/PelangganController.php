@@ -3,79 +3,78 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Admin;
+use App\Models\Pelanggan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
-class AdminController extends Controller
+class PelangganController extends Controller
 {
     //
-    function register(Request $request){
+    function regist(Request $request){
         $validator = Validator::make($request->all(), [
-            'passsuperadmin' => 'required',
+            'nik' => 'required',
             'nama' => 'required',
-            'nipn' => 'required',
-            'nohp' => 'required',
+            'tanggal_lahir' => 'required',
+            'alamat' => 'required',
+            'no_hp' => 'required',
             'email' => 'required',
             'password' => 'required',
-            'wilayah_kerja' => 'required'
         ]);
 
         if($validator->fails()){
             return response($this->responses(false, implode(",", $validator->messages()->all())), 400);
         }
 
-        if($request->passsuperadmin != env('SUPERADMIN_PASS')){
-            return response($this->responses(false, 'restricted access'), 403);
+        $check_nik = Pelanggan::where('nik', $request->email);
+        if($check_nik->count() > 0){
+            return response($this->responses(false, 'Nik address already exist.'), 409);
         }
 
-        $check_nipn = Admin::where('nipn', $request->email);
-        if($check_nipn->count() > 0){
-            return response($this->responses(false, 'Nipn address already exist.'), 409);
-        }
-
-        $check_email = Admin::where('email', $request->email);
+        $check_email = Pelanggan::where('email', $request->email);
         if($check_email->count() > 0){
-            return response($this->responses(false, 'Email address already exist.'), 409);
+            return response($this->responses(false, 'Nik address already exist.'), 409);
         }
 
         $token = $this->generateToken();
-        $inserts = Admin::create([
+
+        $insert = Pelanggan::create([
+            'nik' => $request->nik,
             'nama' => $request->nama,
-            'nipn' => $request->nipn,
-            'nohp' => $request->nohp,
+            'tanggal_lahir' => $request->tanggal_lahir,
+            'alamat' => $request->alamat,
+            'no_hp' => $request->no_hp,
             'email' => $request->email,
             'password' => sha1(md5($request->password)),
-            'wilayah_kerja' => $request->wilayah_kerja,
             'token' => $token
         ]);
 
         return $this->responses(true, 'Success for registry the account');
     }
 
-    function login(Request $request){
+    function login(Request $request)
+    {
         $validator = Validator::make($request->all(), [
             'email' => 'required',
-            'password' => 'required'
+            'password' => 'required',
         ]);
 
         if($validator->fails()){
             return response($this->responses(false, implode(",", $validator->messages()->all())), 400);
         }
 
-        $admin = Admin::where('email', $request->email)->where('password', sha1(md5($request->password)));
-
-        if($admin->count() == 0){
+        $pelanggan = Pelanggan::where('email', $request->email)->where('password', sha1(md5($request->password)));
+        if($pelanggan->count() == 0){
             return response($this->responses(false, 'Invalid username or password.'), 401);
         }
 
-        return $this->responses(true, 'Login successful', $admin->get());
+        return $this->responses(true, 'Login successfull', $pelanggan->get());
     }
 
     function generateToken(){
         $token = Str::random(30);
-        $check_token = Admin::where('token', $token);
+        $check_token = Pelanggan::where('token', $token);
 
         if($check_token->count() > 0){
             return $this->generateToken();
