@@ -7,3 +7,5 @@ use Illuminate\Support\Facades\Route;
 //     return view('welcome');
 // });
 Route::post('login', [PelangganController::class, 'login']);
+
+Route::post('add-data-device/{tokenUser}/{tokenDevice}', [PelangganController::class, ]);

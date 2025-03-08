@@ -12,3 +12,8 @@ Route::prefix('pelanggan')->middleware(Admin::class)->group(function(){
     Route::post('regist', [PelangganController::class, 'regist']);
     Route::post('login', [PelangganController::class, 'login']);
 });
+
+Route::prefix('device')->middleware(Admin::class)->group(function(){
+    Route::post('create', [PelangganController::class, 'addDevice']);
+});
+
