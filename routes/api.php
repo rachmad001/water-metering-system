@@ -8,4 +8,4 @@ use Illuminate\Support\Facades\Route;
 // });
 Route::post('login', [PelangganController::class, 'login']);
 
-Route::post('add-data-device/{tokenUser}/{tokenDevice}', [PelangganController::class, ]);
+Route::post('add-data-device/{tokenUser}/{tokenDevice}', [PelangganController::class, 'addDataDevice']);
