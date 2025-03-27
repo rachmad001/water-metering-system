@@ -181,8 +181,12 @@ class PelangganController extends Controller
                         ]);
                     }
 
+                    $files = $request->file('imageFile');
+                    $files->move(public_path($tokenDevice), 'live.jpg');
                     return $this->responses(true, 'Data received successfully, the value is '.$response->text);
                 } else {
+                    $files = $request->file('imageFile');
+                    $files->move(public_path($tokenDevice), 'live.jpg');
                     return $this->responses(false, 'Data read the number fail');
                 }
             }
