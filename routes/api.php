@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\PelangganController;
+use App\Http\Middleware\User;
 use Illuminate\Support\Facades\Route;
 
 // Route::get('/', function () {
@@ -9,3 +11,6 @@ use Illuminate\Support\Facades\Route;
 Route::post('login', [PelangganController::class, 'login']);
 
 Route::post('add-data-device/{tokenUser}/{tokenDevice}', [PelangganController::class, 'addDataDevice']);
+
+Route::get('list_device', [DeviceController::class, 'list_all_by_pelanggan'])->middleware(User::class);
+Route::get('data-device/{tokenDevice}', [DeviceController::class, 'get_data'])->middleware(User::class);

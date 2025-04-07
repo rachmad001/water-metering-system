@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\PelangganController;
 use App\Http\Middleware\Admin;
 use Illuminate\Support\Facades\Route;
@@ -15,5 +16,7 @@ Route::prefix('pelanggan')->middleware(Admin::class)->group(function(){
 
 Route::prefix('device')->middleware(Admin::class)->group(function(){
     Route::post('create', [PelangganController::class, 'addDevice']);
+    Route::get('list', [DeviceController::class, 'list_all']);
+    Route::get('data-device/{tokenDevice}', [DeviceController::class, 'get_data']);
 });
 

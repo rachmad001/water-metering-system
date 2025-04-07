@@ -2,80 +2,19 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Models\DataDevice;
 use App\Models\device;
 use App\Models\Pelanggan;
-use CURLFile;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
+use CURLFile;
 
-class PelangganController extends Controller
+
+class DeviceController extends Controller
 {
     //
-    function regist(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'nik' => 'required',
-            'nama' => 'required',
-            'tanggal_lahir' => 'required',
-            'alamat' => 'required',
-            'no_hp' => 'required',
-            'email' => 'required',
-            'password' => 'required',
-        ]);
-
-        if ($validator->fails()) {
-            return response($this->responses(false, implode(",", $validator->messages()->all())), 400);
-        }
-
-        $check_nik = Pelanggan::where('nik', $request->nik);
-        if ($check_nik->count() > 0) {
-            return response($this->responses(false, 'Nik already exist.'), 409);
-        }
-
-        $check_email = Pelanggan::where('email', $request->email);
-        if ($check_email->count() > 0) {
-            return response($this->responses(false, 'Email address already exist.'), 409);
-        }
-
-        $token = $this->generateToken();
-
-        $insert = Pelanggan::create([
-            'nik' => $request->nik,
-            'nama' => $request->nama,
-            'tanggal_lahir' => $request->tanggal_lahir,
-            'alamat' => $request->alamat,
-            'no_hp' => $request->no_hp,
-            'email' => $request->email,
-            'password' => sha1(md5($request->password)),
-            'token' => $token
-        ]);
-
-        return $this->responses(true, 'Success for registry the account');
-    }
-
-    function login(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required',
-            'password' => 'required',
-        ]);
-
-        if ($validator->fails()) {
-            return response($this->responses(false, implode(",", $validator->messages()->all())), 400);
-        }
-
-        $pelanggan = Pelanggan::where('email', $request->email)->where('password', sha1(md5($request->password)));
-        if ($pelanggan->count() == 0) {
-            return response($this->responses(false, 'Invalid username or password.'), 401);
-        }
-
-        return $this->responses(true, 'Login successfull', $pelanggan->get());
-    }
-
     function addDevice(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -102,20 +41,6 @@ class PelangganController extends Controller
         ]);
 
         return $this->responses(true, 'Device successusfully registry');
-    }
-
-    function editProfile(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'nama' => 'required',
-            'tanggal_lahir' => 'required',
-            'alamat' => 'required',
-            'no_hp' => 'required'
-        ]);
-
-        if ($validator->fails()) {
-            return response($this->responses(false, implode(",", $validator->messages()->all())), 400);
-        }
     }
 
     function addDataDevice(string $tokenUser, string $tokenDevice, Request $request)
@@ -183,7 +108,7 @@ class PelangganController extends Controller
 
                     $files = $request->file('imageFile');
                     $files->move(public_path($tokenDevice), 'live.jpg');
-                    return $this->responses(true, 'Data received successfully, the value is '.$response->text);
+                    return $this->responses(true, 'Data received successfully, the value is ' . $response->text);
                 } else {
                     $files = $request->file('imageFile');
                     $files->move(public_path($tokenDevice), 'live.jpg');
@@ -195,17 +120,38 @@ class PelangganController extends Controller
         }
     }
 
-    function generateToken()
+    function list_all(Request $request)
     {
-        $token = Str::random(30);
-        $check_token = Pelanggan::where('token', $token);
+        $query = device::query();
 
-        if ($check_token->count() > 0) {
-            return $this->generateToken();
+        if ($request->has('nama')) {
+            $query->where('nama', 'like', '%' . $request->input('nama') . '%');
+        }
+        if ($request->has('nik')) {
+            $query->where('nik', 'like', '%' . $request->input('nik') . '%');
+        }
+        if ($request->has('alamat')) {
+            $query->where('alamat', 'like', '%' . $request->input('alamat') . '%');
         }
 
-        return $token;
+        return $query->paginate(10)->withQueryString();
     }
+
+    function list_all_by_pelanggan(Request $request){
+        $token = $request->bearerToken();
+        $user = Pelanggan::where('token', $token)->first();
+
+        return device::where('nik', $user->nik)->paginate(10)->withQueryString();
+    }
+
+    function get_data(string $tokenDevice){
+        $device = device::where('token', $tokenDevice)->first();
+        $data = DataDevice::query();
+        $data->where('device', $device->id);
+
+        return $data->paginate(10)->withQueryString();
+    }
+
 
     function generateTokenDevice()
     {
