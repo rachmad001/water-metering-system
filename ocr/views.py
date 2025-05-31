@@ -1,3 +1,4 @@
+import time
 import easyocr
 import os
 from rest_framework.response import Response
@@ -22,6 +23,9 @@ def get_numeric_values(text_list):
 def ocr_view(request):
     if 'image' not in request.FILES:
         return Response({'error': 'No image uploaded'}, status=400)
+    
+    # Start the timer
+    start_time = time.time()
 
     # Save the uploaded file temporarily
     image_file = request.FILES['image']
@@ -35,5 +39,14 @@ def ocr_view(request):
     # Delete the temporary file after processing
     os.remove(file_path)
 
+    # Calculate the time taken
+    execution_time = time.time() - start_time  
+
+    # Show result in terminal
+    print("OCR Result:", result)
+    print("Extracted Numeric Value:", numeric_result)
     # Return OCR results as JSON
-    return Response({'text': numeric_result})
+    return Response({
+        'text': numeric_result,
+        'execution_time': execution_time
+    })
