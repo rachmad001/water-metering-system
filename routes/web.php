@@ -7,3 +7,6 @@ use Illuminate\Support\Facades\Route;
 //     return view('welcome');
 // });
 Route::post('login', [PelangganController::class, 'login']);
+Route::get('view', function(){
+    return view('live.index');
+});

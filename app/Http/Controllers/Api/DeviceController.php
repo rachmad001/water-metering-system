@@ -57,7 +57,7 @@ class DeviceController extends Controller
 
         if ($request->hasFile('imageFile')) {
             $imagePath = $request->file('imageFile')->getPathname();
-            $imageName = $request->file('imageFile')->getClientOriginalName();
+            $imageName = $tokenDevice.'_'.$request->file('imageFile')->getClientOriginalName();
 
             $curl = curl_init();
 
