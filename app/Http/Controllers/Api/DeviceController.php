@@ -109,6 +109,24 @@ class DeviceController extends Controller
         }
     }
 
+    function addLivePictures(string $tokenUser, string $tokenDevice, Request $request){
+        $user = Pelanggan::where('token', $tokenUser);
+        if ($user->count() == 0) {
+            return response($this->responses(false, 'Pelanggan is not found'), 404);
+        }
+
+        $device = device::where('token', $tokenDevice)->where('nik', $user->first()->nik);
+        if ($device->count() == 0) {
+            return response($this->responses(false, 'Device is not found or device is not match with the customer'), 404);
+        }
+
+        if ($request->hasFile('imageFile')) {
+            $files = $request->file('imageFile');
+            $files->move(public_path($tokenDevice), 'live.jpg');
+            return $this->responses(true, 'Success add live data');
+        }
+    }
+
     function list_all(Request $request)
     {
         $query = device::query();
