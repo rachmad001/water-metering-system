@@ -16,6 +16,7 @@ class DataDevice extends Model
         'device',
         'value',
         'is_paid',
-        'images_source'
+        'images_source',
+        'execution_time'
     ];
 }

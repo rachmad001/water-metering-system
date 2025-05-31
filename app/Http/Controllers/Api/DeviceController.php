@@ -82,32 +82,21 @@ class DeviceController extends Controller
             } else {
                 $response = json_decode($response);
                 if ($response->text != "") {
-                    $tanggal = date("Y-m-d");
-                    $available_data = DataDevice::where('device', $device->first()->id)->whereDate('created_at', '=', $tanggal)->where('is_paid', '=', 0);
-                    if ($available_data->count() > 0) {
-                        unlink(public_path($available_data->first()->images_source));
-
-                        $files = $request->file('imageFile');
-                        $filesName = $tanggal . '.' . $files->getClientOriginalExtension();
-                        $files->move(public_path($tokenDevice), $filesName);
-
-                        $updates = $available_data->update([
-                            'value' => $response->text,
-                            'images_source' => $tokenDevice . '/' . $filesName
-                        ]);
-                    } else {
+                    $tanggal = date("Y-m-d_H-i-s");
+                    $available_data = DataDevice::where('device', $device->first()->id)->whereDate('created_at', '=', $tanggal)->where('value', '=', $response->text);
+                    if ($available_data->count() == 0) {
                         $files = $request->file('imageFile');
                         $filesName = $tanggal . '.' . $files->getClientOriginalExtension();
                         $files->move(public_path($tokenDevice), $filesName);
                         $inserts = DataDevice::create([
                             'device' => $device->first()->id,
                             'value' => $response->text,
-                            'images_source' => $tokenDevice . '/' . $filesName
+                            'images_source' => $tokenDevice . '/' . $filesName,
+                            'execution_time' => $response->execution_time
                         ]);
-                    }
 
-                    $files = $request->file('imageFile');
-                    $files->move(public_path($tokenDevice), 'live.jpg');
+                        copy(public_path($tokenDevice . '/' . $filesName), public_path($tokenDevice . '/live.jpg'));
+                    }
                     return $this->responses(true, 'Data received successfully, the value is ' . $response->text);
                 } else {
                     $files = $request->file('imageFile');
@@ -137,14 +126,16 @@ class DeviceController extends Controller
         return $query->paginate(10)->withQueryString();
     }
 
-    function list_all_by_pelanggan(Request $request){
+    function list_all_by_pelanggan(Request $request)
+    {
         $token = $request->bearerToken();
         $user = Pelanggan::where('token', $token)->first();
 
         return device::where('nik', $user->nik)->paginate(10)->withQueryString();
     }
 
-    function get_data(string $tokenDevice){
+    function get_data(string $tokenDevice)
+    {
         $device = device::where('token', $tokenDevice)->first();
         $data = DataDevice::query();
         $data->where('device', $device->id);
