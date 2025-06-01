@@ -56,60 +56,91 @@ class DeviceController extends Controller
         }
 
         if ($request->hasFile('imageFile')) {
-            $imagePath = $request->file('imageFile')->getPathname();
-            $imageName = $tokenDevice.'_'.$request->file('imageFile')->getClientOriginalName();
+            $files = $request->file('imageFile');
+            $files->move(public_path($tokenDevice), 'live.jpg');
 
-            $curl = curl_init();
+            $original_date = time();
+            $tanggal = date("Y-m-d_H-i-s", $original_date);
+            $filesNameOCR = $tanggal . '-ocr.' . $files->getClientOriginalExtension();
+            copy(public_path($tokenDevice . '/live.jpg'), public_path($tokenDevice . '/' . $filesNameOCR));
 
-            $postData = [
-                'image' => new CURLFile($imagePath, $request->file('imageFile')->getMimeType(), $imageName)
-            ];
+            $response = shell_exec('py ' . public_path('gemini.py') . ' ' . $tokenDevice . '/' . $filesNameOCR);
+            $response = json_decode($response);
 
-            curl_setopt_array($curl, [
-                CURLOPT_URL => env('OCR_URL') . "/api/ocr/", // Adjust API endpoint
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => $postData,
-            ]);
-
-            $response = curl_exec($curl);
-            $err = curl_error($curl);
-
-            curl_close($curl);
-
-            if ($err) {
-                return response()->json(['success' => false, 'message' => 'cURL Error: ' . $err], 500);
-            } else {
-                $response = json_decode($response);
-                if ($response->text != "") {
-                    $tanggal = date("Y-m-d_H-i-s");
-                    $available_data = DataDevice::where('device', $device->first()->id)->whereDate('created_at', '=', $tanggal)->where('value', '=', $response->text);
-                    if ($available_data->count() == 0) {
-                        $files = $request->file('imageFile');
-                        $filesName = $tanggal . '.' . $files->getClientOriginalExtension();
-                        $files->move(public_path($tokenDevice), $filesName);
-                        $inserts = DataDevice::create([
-                            'device' => $device->first()->id,
-                            'value' => $response->text,
-                            'images_source' => $tokenDevice . '/' . $filesName,
-                            'execution_time' => $response->execution_time
-                        ]);
-
-                        copy(public_path($tokenDevice . '/' . $filesName), public_path($tokenDevice . '/live.jpg'));
-                    }
-                    return $this->responses(true, 'Data received successfully, the value is ' . $response->text);
-                } else {
-                    $files = $request->file('imageFile');
-                    $files->move(public_path($tokenDevice), 'live.jpg');
-                    return $this->responses(false, 'Data read the number fail');
+            unlink(public_path($tokenDevice . '/' . $filesNameOCR));
+            
+            if ($response->text != "") {
+                $tanggal = date("Y-m-d_H-i-s", $original_date);
+                $available_data = DataDevice::where('device', $device->first()->id)->whereDate('created_at', '=', date("Y-m-d", $original_date))->where('value', '=', $response->text);
+                if ($available_data->count() == 0) {
+                    $filesName = $tanggal . '.' . $files->getClientOriginalExtension();
+                    copy(public_path($tokenDevice . '/live.jpg'), public_path($tokenDevice . '/' . $filesName));
+                    $inserts = DataDevice::create([
+                        'device' => $device->first()->id,
+                        'value' => $response->text,
+                        'images_source' => $tokenDevice . '/' . $filesName,
+                        'execution_time' => $response->execution_time
+                    ]);
                 }
+                return $this->responses(true, 'Data received successfully, the value is ' . $response->text);
+            } else {
+                return $this->responses(false, 'Data read the number fail');
             }
+            // $imagePath = $request->file('imageFile')->getPathname();
+            // $imageName = $tokenDevice.'_'.$request->file('imageFile')->getClientOriginalName();
+
+            // $curl = curl_init();
+
+            // $postData = [
+            //     'image' => new CURLFile($imagePath, $request->file('imageFile')->getMimeType(), $imageName)
+            // ];
+
+            // curl_setopt_array($curl, [
+            //     CURLOPT_URL => env('OCR_URL') . "/api/ocr/", // Adjust API endpoint
+            //     CURLOPT_RETURNTRANSFER => true,
+            //     CURLOPT_POST => true,
+            //     CURLOPT_POSTFIELDS => $postData,
+            // ]);
+
+            // $response = curl_exec($curl);
+            // $err = curl_error($curl);
+
+            // curl_close($curl);
+
+            // if ($err) {
+            //     return response()->json(['success' => false, 'message' => 'cURL Error: ' . $err], 500);
+            // } else {
+            //     $response = json_decode($response);
+            //     if ($response->text != "") {
+            //         $tanggal = date("Y-m-d_H-i-s");
+            //         $available_data = DataDevice::where('device', $device->first()->id)->whereDate('created_at', '=', $tanggal)->where('value', '=', $response->text);
+            //         if ($available_data->count() == 0) {
+            //             $files = $request->file('imageFile');
+            //             $filesName = $tanggal . '.' . $files->getClientOriginalExtension();
+            //             $files->move(public_path($tokenDevice), $filesName);
+            //             $inserts = DataDevice::create([
+            //                 'device' => $device->first()->id,
+            //                 'value' => $response->text,
+            //                 'images_source' => $tokenDevice . '/' . $filesName,
+            //                 'execution_time' => $response->execution_time
+            //             ]);
+
+            //             copy(public_path($tokenDevice . '/' . $filesName), public_path($tokenDevice . '/live.jpg'));
+            //         }
+            //         return $this->responses(true, 'Data received successfully, the value is ' . $response->text);
+            //     } else {
+            //         $files = $request->file('imageFile');
+            //         $files->move(public_path($tokenDevice), 'live.jpg');
+            //         return $this->responses(false, 'Data read the number fail');
+            //     }
+            // }
         } else {
             return response($this->responses(false, 'imageFile not found'), 400);
         }
     }
 
-    function addLivePictures(string $tokenUser, string $tokenDevice, Request $request){
+    function addLivePictures(string $tokenUser, string $tokenDevice, Request $request)
+    {
         $user = Pelanggan::where('token', $tokenUser);
         if ($user->count() == 0) {
             return response($this->responses(false, 'Pelanggan is not found'), 404);
