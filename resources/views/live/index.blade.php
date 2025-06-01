@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Image Viewer</title>
     <script>
+        var counting = 0;
         function refreshImage() {
+            counting++;
             var img = document.getElementById("liveImage");
-            var timestamp = new Date().getTime(); // Unique query parameter to bypass caching
-            img.src = "Rn1Ji2xt2dQE63xCBjmkDb25Qk6bLP/live.jpg?t=" + timestamp;
+            img.src = "Rn1Ji2xt2dQE63xCBjmkDb25Qk6bLP/live.jpg?t=" + counting;
         }
 
         setInterval(refreshImage, 1000); // Refresh every 3 seconds
