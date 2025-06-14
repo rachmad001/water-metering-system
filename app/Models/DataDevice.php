@@ -19,4 +19,12 @@ class DataDevice extends Model
         'images_source',
         'execution_time'
     ];
+
+    public function device(){
+        return $this->hasOne(device::class, 'id', 'device');
+    }
+
+    public function pelanggan(){
+        return $this->hasOneThrough(Pelanggan::class, device::class, 'nik', 'nik', 'device', 'id');
+    }
 }

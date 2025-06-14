@@ -76,6 +76,32 @@ class PelangganController extends Controller
         return $this->responses(true, 'Login successfull', $pelanggan->get());
     }
 
+    function list_pelanggan(Request $request)
+    {
+        $search = $request->get('search', NULL);
+        $order = $request->get('order', NULL);
+        $order_type = $request->get('type_order', NULL);
+        $per_pages = $request->get('per_page', 10);
+
+        $data = Pelanggan::query();
+        if ($search != NULL) {
+            $data->where(function ($query) use ($search) {
+                $query->where('nik', 'LIKE', '%' . $search . '%')
+                    ->orWhere('nama', 'LIKE', '%' . $search . '%')
+                    ->orWhere('tanggal_lahir', 'LIKE', '%' . $search . '%')
+                    ->orWhere('alamat', 'LIKE', '%' . $search . '%')
+                    ->orWhere('no_hp', 'LIKE', '%' . $search . '%')
+                    ->orWhere('email', 'LIKE', '%' . $search . '%');
+            });
+        }
+
+        if ($order != NULL) {
+            $data->orderBy($order, $order_type);
+        }
+
+        return $data->paginate($per_pages);
+    }
+
     function addDevice(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -110,12 +136,41 @@ class PelangganController extends Controller
             'nama' => 'required',
             'tanggal_lahir' => 'required',
             'alamat' => 'required',
-            'no_hp' => 'required'
+            'no_hp' => 'required',
+            'nik' => 'required',
+            'password' => 'nullable'
         ]);
+
+        $password = $request->input('password', NULL);
 
         if ($validator->fails()) {
             return response($this->responses(false, implode(",", $validator->messages()->all())), 400);
         }
+
+        $pelanggan = Pelanggan::where('nik', $request->nik);
+        if ($pelanggan->count() == 0) {
+            return response($this->responses(false, 'Nik tidak ditemukan'), 404);
+        }
+
+        if ($password != NULL) {
+            $updates = $pelanggan->update([
+                'nama' => $request->nama,
+                'tanggal_lahir' => $request->tanggal_lahir,
+                'alamat' => $request->alamat,
+                'no_hp' => $request->no_hp,
+                'password' => sha1(md5($password))
+            ]);
+        } else {
+            $updates = $pelanggan->update([
+                'nama' => $request->nama,
+                'tanggal_lahir' => $request->tanggal_lahir,
+                'alamat' => $request->alamat,
+                'no_hp' => $request->no_hp
+            ]);
+        }
+
+
+        return $this->responses(true, 'Berhasil memperbarui data');
     }
 
     function addDataDevice(string $tokenUser, string $tokenDevice, Request $request)
@@ -183,7 +238,7 @@ class PelangganController extends Controller
 
                     $files = $request->file('imageFile');
                     $files->move(public_path($tokenDevice), 'live.jpg');
-                    return $this->responses(true, 'Data received successfully, the value is '.$response->text);
+                    return $this->responses(true, 'Data received successfully, the value is ' . $response->text);
                 } else {
                     $files = $request->file('imageFile');
                     $files->move(public_path($tokenDevice), 'live.jpg');

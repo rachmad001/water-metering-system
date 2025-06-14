@@ -68,7 +68,7 @@ class DeviceController extends Controller
             $response = json_decode($response);
 
             unlink(public_path($tokenDevice . '/' . $filesNameOCR));
-            
+
             if ($response->text != "") {
                 $tanggal = date("Y-m-d_H-i-s", $original_date);
                 $available_data = DataDevice::where('device', $device->first()->id)->whereDate('created_at', '=', date("Y-m-d", $original_date))->where('value', '=', $response->text);
@@ -160,19 +160,26 @@ class DeviceController extends Controller
 
     function list_all(Request $request)
     {
-        $query = device::query();
+        $search = $request->get('search', NULL);
+        $order = $request->get('order', NULL);
+        $order_type = $request->get('type_order', NULL);
+        $per_pages = $request->get('per_page', 10);
 
-        if ($request->has('nama')) {
-            $query->where('nama', 'like', '%' . $request->input('nama') . '%');
-        }
-        if ($request->has('nik')) {
-            $query->where('nik', 'like', '%' . $request->input('nik') . '%');
-        }
-        if ($request->has('alamat')) {
-            $query->where('alamat', 'like', '%' . $request->input('alamat') . '%');
+        $data = device::query();
+        if ($search != NULL) {
+            $data->where(function ($query) use ($search) {
+                $query->where('id', 'LIKE', '%' . $search . '%')
+                    ->orWhere('nama', 'LIKE', '%' . $search . '%')
+                    ->orWhere('alamat', 'LIKE', '%' . $search . '%')
+                    ->orWhere('nik', 'LIKE', '%' . $search . '%');
+            });
         }
 
-        return $query->paginate(10)->withQueryString();
+        if ($order != NULL) {
+            $data->orderBy($order, $order_type);
+        }
+
+        return $data->paginate($per_pages);
     }
 
     function list_all_by_pelanggan(Request $request)
@@ -192,6 +199,80 @@ class DeviceController extends Controller
         return $data->paginate(10)->withQueryString();
     }
 
+    function get_all_data_device(Request $request)
+    {
+        $search = $request->get('search', NULL);
+        $ordered = $request->get('order', NULL);
+        $type_order = $request->get('type_order', NULL);
+        $per_pages = $request->get('per_page', 10);
+
+        $data_device = DataDevice::query();
+        if ($search != NULL) {
+            $data_device->where(function ($query) use ($search) {
+                $query->where('device', 'LIKE', '%' . $search . '%')
+                    ->orWhere('value', 'LIKE', '%' . $search . '%')
+                    ->orWhere('created_at', 'LIKE', '%' . $search . '%');
+            });
+
+            if ($ordered != NULL) {
+                if ($ordered == 'nik') {
+                    $data_device->with(['device.pelanggan' => function ($query) use ($search, $type_order) {
+                        $query->select('nik', 'nama')->where('nik', 'LIKE', '%' . $search . '%')->orderBy('nik', $type_order);
+                    }]);
+                } else {
+                    $data_device->with(['device.pelanggan' => function ($query) use ($search) {
+                        $query->select('nik', 'nama')->where('nik', 'LIKE', '%' . $search . '%');
+                    }])->orderBy($ordered, $type_order);
+                }
+            } else {
+                $data_device->with(['device.pelanggan' => function ($query) use ($search) {
+                    $query->select('nik', 'nama')->where('nik', 'LIKE', '%' . $search . '%');
+                }]);
+            }
+        } else {
+            if ($ordered != NULL) {
+                if ($ordered == 'nik') {
+                    $data_device->with(['device.pelanggan' => function ($query) use ($search, $type_order) {
+                        $query->select('nik', 'nama')->orderBy('nik', $type_order);
+                    }]);
+                } else {
+                    $data_device->with(['device.pelanggan' => function ($query) use ($search) {
+                        $query->select('nik', 'nama');
+                    }])->orderBy($ordered, $type_order);
+                }
+            } else {
+                $data_device->with(['device.pelanggan' => function ($query) use ($search) {
+                    $query->select('nik', 'nama');
+                }]);
+            }
+        }
+
+        return $data_device->paginate($per_pages);
+    }
+
+    function edit_data_device(Request $request){
+        $validator = Validator::make($request->all(), [
+            'status' => 'required',
+            'value' => 'required',
+            'id' => 'required'
+        ]);
+
+        if($validator->fails()){
+            return response($this->responses(false, implode(",", $validator->messages()->all())), 400);
+        }
+
+        $data_device = DataDevice::where('id', $request->id);
+        if($data_device->count() == 0){
+            return response($this->responses(false, 'id tidak ditemukan'), 404);
+        }
+
+        $update = $data_device->update([
+            'value' => $request->value,
+            'is_paid' => $request->status
+        ]);
+
+        return $this->responses(true, 'Berhasil memperbarui data');
+    }
 
     function generateTokenDevice()
     {

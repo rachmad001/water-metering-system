@@ -18,4 +18,12 @@ class device extends Model
         'nik',
         'token'
     ];
+
+    public function pelanggan(){
+        return $this->hasOne(Pelanggan::class, 'nik', 'nik');
+    }
+
+    public function data(){
+        return $this->hasMany(DataDevice::class, 'device', 'id');
+    }
 }
