@@ -39,14 +39,14 @@ services:
       - "8443:8080"
       
     # Set a password for code-server. Change 'your_secure_password'
-    environment:
-      - PASSWORD=@myPasswd123
+    # environment:
+    #   - PASSWORD=@myPasswd123
 
     # Set storage limit for the container's writable layer.
     # Note: This requires the 'overlay2' storage driver with 'projectquota' mount option enabled on the host's Docker daemon.
     # Check your /etc/docker/daemon.json. May not work on all systems.
-    storage_opt:
-      size: '2G' # Example: Limit container storage to 2GB
+    # storage_opt:
+    #   size: '2G' # Example: Limit container storage to 2GB
 
     # Restart policy
     restart: unless-stopped
