@@ -1,56 +1,40 @@
-version: '3.8'
-
 services:
   vscode:
-    # Build the image from the Dockerfile in the current directory
     build:
       context: .
       args:
-        # IMPORTANT: Replace YOUR_DOCKER_GID with the GID from your host machine
-        # Find it by running: getent group docker | cut -d: -f3
+        # Make sure this GID is correct for your system
         DOCKER_GID: 988
     
     container_name: vscode_limited_env
-    
-    # Run as the 'coder' user defined in the Dockerfile (UID 1000)
     user: "1000"
-
-    # Restricts container permissions for higher security
-    # The root filesystem is read-only.
     read_only: true
-    # But we make specific paths writable.
     tmpfs:
       - /tmp
       - /run
 
     volumes:
-      # Mount the project directory with read-write access.
-      # This is the ONLY persistent storage the user can write to.
-      - ./project:/home/coder/project:rw
+      # CORRECTED: Mount the HOST DIRECTORY where the image is mounted
+      - /mnt/vscode_project:/home/coder/project:rw
       
-      # Mount the Docker socket to allow running docker commands from inside the container.
+      # Other volumes remain the same
       - /var/run/docker.sock:/var/run/docker.sock
-      
-      # A named volume for code-server config and extensions
       - vscode_data:/home/coder/.local
+      - vscode_config:/home/coder/.config
 
-    # Port mapping: <HOST_PORT>:<CONTAINER_PORT>
     ports:
       - "8443:8080"
       
-    # Set a password for code-server. Change 'your_secure_password'
-    # environment:
-    #   - PASSWORD=@myPasswd123
+    environment:
+      - PASSWORD=your_secure_password
 
-    # Set storage limit for the container's writable layer.
-    # Note: This requires the 'overlay2' storage driver with 'projectquota' mount option enabled on the host's Docker daemon.
-    # Check your /etc/docker/daemon.json. May not work on all systems.
-    # storage_opt:
-    #   size: '2G' # Example: Limit container storage to 2GB
+    # NEW COMMAND: This fixes the permission error before starting the server.
+    command: sh -c "sudo chown -R coder:coder /home/coder/.local /home/coder/.config && exec code-server --bind-addr 0.0.0.0:8080 /home/coder/project"
 
-    # Restart policy
     restart: unless-stopped
 
 volumes:
   vscode_data:
+    driver: local
+  vscode_config:
     driver: local
