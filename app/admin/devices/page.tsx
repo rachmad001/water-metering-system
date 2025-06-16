@@ -1,7 +1,9 @@
 'use client'
 import './style.css'
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Swal from 'sweetalert2';
+import { Dropdown, DropdownItem, DropdownDivider, ListGroup, ListGroupItem, createTheme, ThemeProvider } from 'flowbite-react';
+import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 
 const Sidebar = ({ menu }) => (
     <div className="w-64 h-full bg-gray-800 text-white flex flex-col">
@@ -94,55 +96,190 @@ const EditModal = ({ row, onClose, onSave }) => {
     );
 };
 
+const DropDownUser = ({ balikan }) => {
+    const divRef = useRef<HTMLDivElement>(null);
+    const divRefBtn = useRef<HTMLButtonElement>(null);
+    const [isOpen, setIsOpen] = useState(false);
+    const [pelanggan, setPelanggan] = useState("Pilih pelanggan");
+
+    const [initialDataPelanggan, setInitialDataPelanggan] = useState([]);
+    const [perPagesPelanggan, setPerPagesPelanggan] = useState(10)
+    const [pagesPelanggan, setPagesPelanggan] = useState(1);
+    const [from, setFrom] = useState(0);
+    const [to, setTo] = useState(0);
+    const [total, setTotal] = useState(0);
+    const [currentPages, setCurrentPages] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+
+    const [searchPelanggan, setSearchPelanggan] = useState(null);
+
+    useEffect(() => {
+        loadDataTablePelanggan()
+    }, [])
+
+    useEffect(() => {
+        loadDataTablePelanggan()
+    }, [pagesPelanggan, searchPelanggan])
+
+    const loadDataTablePelanggan = async () => {
+        const token = sessionStorage.getItem("token");
+        try {
+            // Construct the API URL
+            const searchs = searchPelanggan != null ? "&search=" + searchPelanggan : "";
+            const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/admin/pelanggan?page=${pagesPelanggan}&per_page=${perPagesPelanggan}${searchs}`;
+
+            // Make the fetch request with Authorization header
+            const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            // Check if the request was successful
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // Parse the JSON response
+            const responses = await response.json();
+            console.log(responses);
+            setCurrentPages(responses.current_page)
+            setTotalPages(responses.last_page)
+            setPagesPelanggan(responses.current_page)
+            setFrom(responses.from)
+            setTo(responses.to)
+            setTotal(responses.total)
+
+            setInitialDataPelanggan(responses.data)
+
+        } catch (e) {
+            if (e instanceof Error) {
+                console.log(e.message);
+            } else {
+                console.log("An unknown error occurred.");
+            }
+            console.error("Failed to fetch data:", e);
+        }
+    }
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            //jika klik diluar
+            if (divRef.current && !divRef.current.contains(event.target as Node)) {
+                if (divRefBtn.current && divRefBtn.current.contains(event.target as Node)) {
+                    var states = isOpen
+                    setIsOpen(prev => !prev)
+                } else {
+                    setIsOpen(false)
+                }
+            } else {
+                if (divRefBtn.current && divRefBtn.current.contains(event.target as Node)) {
+                    setIsOpen(prev => !prev)
+                }
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside)
+        }
+    }, [])
+
+    return (
+        <div className="w-full relative">
+            <button
+                type='button'
+                className='text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500'
+                ref={divRefBtn}
+            >
+                {pelanggan}
+            </button>
+
+            {isOpen && (
+                <div className="absolute w-full top-12 border border-gray-300 rounded-md shadow-sm bg-white" ref={divRef}>
+                    <div className="w-full p-1 bg-white-200">
+                        <input id="edit_nik" type="text" placeholder='Cari nik atau nama' value={searchPelanggan} onChange={(e) => searchPelanggan(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    </div>
+
+                    {initialDataPelanggan.map((row) => (
+                        <div
+                            className="w-full p-1 border border-gray-300 text-gray-800"
+                            onClick={() => {
+                                balikan(row.nik)
+                                setPelanggan(`${row.nik} - ${row.nama}`)
+                                setIsOpen(false)
+                            }}
+                        >{row.nik} - {row.nama}</div>
+                    ))}
+                    <div className="flex justify-between items-center p-2">
+                        <p className="text-sm text-gray-600">
+                            Showing {from} to {to} of {total} entries
+                        </p>
+                        <div className="flex items-center space-x-2 text-gray-600">
+                            {/* <button className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed">Previous</button> */}
+                            <button
+                                onClick={() => {
+                                    var page = pagesPelanggan;
+                                    page = page - 1;
+                                    setPagesPelanggan(page)
+                                }}
+                                disabled={currentPages === 1}
+                                className="relative inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Previous
+                            </button>
+                            <span className="text-sm px-2">Page {currentPages} of {totalPages}</span>
+                            <button
+                                onClick={() => {
+                                    var page = pagesPelanggan;
+                                    page = page + 1;
+                                    setPagesPelanggan(page)
+                                }}
+                                disabled={currentPages === totalPages}
+                                className="relative inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >Next</button>
+                            {/* <button className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed">Next</button> */}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
 const AddModal = ({ onClose, onSave }) => {
     const [editedNik, setEditedNik] = useState('');
     const [editedNama, setEditedNama] = useState('');
-    const [editedBirthDate, setEditedBirthDate] = useState('');
     const [editedAlamat, setEditedAlamat] = useState('');
-    const [editedNoHp, setEditedNoHp] = useState('');
-    const [editedEmail, setEditedEmail] = useState('');
-    const [editedPassword, setEditedPassword] = useState('');
 
     const handleSave = (e) => {
         e.preventDefault();
-        onSave({ nik: editedNik, nama: editedNama, tanggal_lahir: editedBirthDate, alamat: editedAlamat, no_hp: editedNoHp, email: editedEmail, password: editedPassword });
+        onSave({ nik: editedNik, nama: editedNama, alamat: editedAlamat });
     };
 
+    const getNik = (nik) => {
+        setEditedNik(nik)
+    }
+
     return (
-        <div className="fixed inset-0 bg-[rgba(190,190,190,0.5)] flex justify-center items-center z-50">
+        <div className="fixed inset-0 bg-[rgba(190,190,190,0.5)] flex justify-center items-center z-10">
             <div className="bg-white p-8 rounded-lg shadow-2xl w-full h-auto max-h-full max-w-md overflow-y-scroll">
                 <div className="flex justify-between items-center border-b pb-4 mb-4">
                     <h3 className="text-2xl font-semibold text-gray-800">Register Entry:</h3>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
                 </div>
                 <form onSubmit={handleSave}>
-                    <div className="mb-4">
-                        <label htmlFor="edit_nik" className="block text-sm font-medium text-gray-700 mb-1">User ID</label>
-                        <input id="edit_nik" type="text" value={editedNik} onChange={(e) => setEditedNik(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    <div className="w-full mb-4">
+                        <DropDownUser balikan={getNik} />
                     </div>
                     <div className="mb-4">
-                        <label htmlFor="edit_nama" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                        <label htmlFor="edit_nama" className="block text-sm font-medium text-gray-700 mb-1">Name Device</label>
                         <input id="edit_nama" type="text" value={editedNama} onChange={(e) => setEditedNama(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
                     <div className="mb-4">
-                        <label htmlFor="edit_tanggal_lahir" className="block text-sm font-medium text-gray-700 mb-1">Birthdate</label>
-                        <input id="edit_tanggal_lahir" type="date" value={editedBirthDate} onChange={(e) => setEditedBirthDate(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </div>
-                    <div className="mb-4">
-                        <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                        <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Address Device</label>
                         <input id="edit_alamat" type="text" value={editedAlamat} onChange={(e) => setEditedAlamat(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </div>
-                    <div className="mb-4">
-                        <label htmlFor="edit_no_hp" className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                        <input id="edit_no_hp" type="text" value={editedNoHp} onChange={(e) => setEditedNoHp(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </div>
-                    <div className="mb-4">
-                        <label htmlFor="edit_email" className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-                        <input id="edit_email" type="text" value={editedEmail} onChange={(e) => setEditedEmail(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </div>
-                    <div className="mb-4">
-                        <label htmlFor="edit_password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                        <input id="edit_password" type="password" value={editedPassword} onChange={(e) => setEditedPassword(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
                     <div className="flex justify-end space-x-4">
                         <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">Cancel</button>
@@ -170,7 +307,7 @@ export default function App() {
     const [currentPages, setCurrentPages] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    const [search, setSearch] = useState(null);
+    const [search, setSearch] = useState("");
 
     useEffect(() => {
         loadDataTable()
@@ -270,11 +407,7 @@ export default function App() {
         var formData = new FormData();
         formData.append("nik", row.nik);
         formData.append("nama", row.nama);
-        formData.append("tanggal_lahir", row.tanggal_lahir);
         formData.append("alamat", row.alamat);
-        formData.append("no_hp", row.no_hp);
-        formData.append("email", row.email);
-        formData.append("password", row.password);
 
         var xhr = new XMLHttpRequest();
         xhr.onload = function () {
@@ -296,9 +429,8 @@ export default function App() {
                     timer: 2000
                 });
             }
-
         }
-        xhr.open("POST", process.env.NEXT_PUBLIC_API_URL + "/admin/pelanggan/regist", true);
+        xhr.open("POST", process.env.NEXT_PUBLIC_API_URL + "/admin/device/create", true);
         xhr.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("token"));
         xhr.send(formData);
     }
@@ -319,7 +451,7 @@ export default function App() {
         formData.append("alamat", row.alamat);
         formData.append("no_hp", row.no_hp);
         formData.append("email", row.email);
-        if(row.password != ''){
+        if (row.password != '') {
             formData.append("password", row.password)
         };
 
@@ -343,9 +475,9 @@ export default function App() {
                 })
             }
         }
-        
+
         xhr.open("PUT", process.env.NEXT_PUBLIC_API_URL + "/admin/pelanggan", true);
-        xhr.setRequestHeader("Authorization", "Bearer "+sessionStorage.getItem("token"));
+        xhr.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("token"));
         xhr.send(formData);
         handleCloseEditModal();
     };
@@ -362,7 +494,7 @@ export default function App() {
             <div className="grow flex justify-center items-center py-3">
                 <div className="flex flex-col rounded-xl bg-white w-[90%] h-auto max-h-full overflow-y-scroll scrollbar-hide border-2 border-[#C0ECF4]">
                     <div className="flex w-full justify-between items-center p-3">
-                        <h1 className="text-4xl font-bold text-gray-800">User Profile</h1>
+                        <h1 className="text-4xl font-bold text-gray-800">User Devices</h1>
 
                         <div className="flex items-center flex-row">
                             <input
