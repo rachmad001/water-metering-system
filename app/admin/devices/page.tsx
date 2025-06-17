@@ -37,54 +37,44 @@ const Sidebar = ({ menu }) => (
 
 const EditModal = ({ row, onClose, onSave }) => {
     const [editedNama, setEditedNama] = useState('');
-    const [editedBirthDate, setEditedBirthDate] = useState('');
+    const [editedNik, setEditedNik] = useState('');
     const [editedAlamat, setEditedAlamat] = useState('');
-    const [editedNoHp, setEditedNoHp] = useState('');
-    const [editedPassword, setEditedPassword] = useState('');
 
     useEffect(() => {
         if (row) {
+            setEditedNik(row.nik);
             setEditedNama(row.nama);
-            setEditedBirthDate(row.tanggal_lahir);
             setEditedAlamat(row.alamat);
-            setEditedNoHp(row.no_hp);
         }
     }, [row]);
 
     const handleSave = (e) => {
         e.preventDefault();
-        onSave({ ...row, nama: editedNama, tanggal_lahir: editedBirthDate, alamat: editedAlamat, no_hp: editedNoHp, password: editedPassword });
+        onSave({ ...row, nik: editedNik, nama: editedNama, alamat: editedAlamat});
     };
+
+    const getNik = (nik) => {setEditedNik(nik)}
 
     if (!row) return null;
 
     return (
-        <div className="fixed inset-0 bg-[rgba(190,190,190,0.3)] flex justify-center items-center z-50">
-            <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md">
+        <div className="fixed inset-0 bg-[rgba(190,190,190,0.5)] flex justify-center items-center z-10">
+            <div className="bg-white p-8 rounded-lg shadow-2xl w-full h-auto max-h-full max-w-md overflow-y-scroll">
                 <div className="flex justify-between items-center border-b pb-4 mb-4">
-                    <h3 className="text-2xl font-semibold text-gray-800">Edit Entry: {row.userId}</h3>
+                    <h3 className="text-2xl font-semibold text-gray-800">Register Entry:</h3>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
                 </div>
                 <form onSubmit={handleSave}>
+                    <div className="w-full mb-4">
+                        <DropDownUser balikan={getNik} label={`${row.nik} - ${row.pelanggan.nama}`}/>
+                    </div>
                     <div className="mb-4">
-                        <label htmlFor="edit_nama" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                        <label htmlFor="edit_nama" className="block text-sm font-medium text-gray-700 mb-1">Name Device</label>
                         <input id="edit_nama" type="text" value={editedNama} onChange={(e) => setEditedNama(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
                     <div className="mb-4">
-                        <label htmlFor="edit_tanggal_lahir" className="block text-sm font-medium text-gray-700 mb-1">Birthdate</label>
-                        <input id="edit_tanggal_lahir" type="text" value={editedBirthDate} onChange={(e) => setEditedBirthDate(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </div>
-                    <div className="mb-4">
-                        <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                        <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Address Device</label>
                         <input id="edit_alamat" type="text" value={editedAlamat} onChange={(e) => setEditedAlamat(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </div>
-                    <div className="mb-4">
-                        <label htmlFor="edit_no_hp" className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                        <input id="edit_no_hp" type="text" value={editedNoHp} onChange={(e) => setEditedNoHp(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </div>
-                    <div className="mb-4">
-                        <label htmlFor="edit_password" className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                        <input id="edit_password" type="password" value={editedPassword} onChange={(e) => setEditedPassword(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
                     <div className="flex justify-end space-x-4">
                         <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">Cancel</button>
@@ -96,11 +86,11 @@ const EditModal = ({ row, onClose, onSave }) => {
     );
 };
 
-const DropDownUser = ({ balikan }) => {
+const DropDownUser = ({ balikan, label = "Pilih pelanggan" }) => {
     const divRef = useRef<HTMLDivElement>(null);
     const divRefBtn = useRef<HTMLButtonElement>(null);
     const [isOpen, setIsOpen] = useState(false);
-    const [pelanggan, setPelanggan] = useState("Pilih pelanggan");
+    const [pelanggan, setPelanggan] = useState(label);
 
     const [initialDataPelanggan, setInitialDataPelanggan] = useState([]);
     const [perPagesPelanggan, setPerPagesPelanggan] = useState(10)
@@ -111,7 +101,7 @@ const DropDownUser = ({ balikan }) => {
     const [currentPages, setCurrentPages] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    const [searchPelanggan, setSearchPelanggan] = useState(null);
+    const [searchPelanggan, setSearchPelanggan] = useState("");
 
     useEffect(() => {
         loadDataTablePelanggan()
@@ -445,15 +435,10 @@ export default function App() {
         });
 
         var formData = new URLSearchParams();
+        formData.append("id", row.id);
         formData.append("nik", row.nik);
         formData.append("nama", row.nama);
-        formData.append("tanggal_lahir", row.tanggal_lahir);
         formData.append("alamat", row.alamat);
-        formData.append("no_hp", row.no_hp);
-        formData.append("email", row.email);
-        if (row.password != '') {
-            formData.append("password", row.password)
-        };
 
         var xhr = new XMLHttpRequest();
         xhr.onload = function () {
@@ -476,7 +461,7 @@ export default function App() {
             }
         }
 
-        xhr.open("PUT", process.env.NEXT_PUBLIC_API_URL + "/admin/pelanggan", true);
+        xhr.open("PUT", process.env.NEXT_PUBLIC_API_URL + "/admin/device/edit", true);
         xhr.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("token"));
         xhr.send(formData);
         handleCloseEditModal();
