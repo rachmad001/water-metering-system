@@ -43,6 +43,38 @@ class DeviceController extends Controller
         return $this->responses(true, 'Device successusfully registry');
     }
 
+    function editDevice(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'nama' => 'required',
+            'alamat' => 'required',
+            'nik' => 'required',
+            'id' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            return response($this->responses(false, implode(",", $validator->messages()->all())), 400);
+        }
+
+        $data_updated = [
+            'nama' => $request->nama,
+            'alamat' => $request->alamat,
+            'nik' => $request->nik
+        ];
+        $check_nik = Pelanggan::where('nik', $request->nik);
+        if ($check_nik->count() == 0) {
+            return response($this->responses(false, 'Nik not found'), 404);
+        }
+
+        if(device::where('id', $request->id)->count() == 0){
+            return response($this->responses(false, 'id tidak ditemukan'), 404);
+        }
+
+        $inserts = device::where('id', $request->id)->update($data_updated);
+
+        return $this->responses(true, 'Device successusfully updated');
+    }
+
     function addDataDevice(string $tokenUser, string $tokenDevice, Request $request)
     {
         $user = Pelanggan::where('token', $tokenUser);
@@ -165,7 +197,7 @@ class DeviceController extends Controller
         $order_type = $request->get('type_order', NULL);
         $per_pages = $request->get('per_page', 10);
 
-        $data = device::query();
+        $data = device::with('pelanggan');
         if ($search != NULL) {
             $data->where(function ($query) use ($search) {
                 $query->where('id', 'LIKE', '%' . $search . '%')
