@@ -111,7 +111,7 @@ export default function App() {
             // Construct the API URL
             const searchs = search != null ? "&search=" + search : "";
             const order = `&order=${sortConfig.key}&type_order=${sortConfig.direction}`
-            const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/admin/data?page=${pages}&per_page=${perPages}${order}${searchs}`;
+            const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/admin/data/dashboard?page=${pages}&per_page=${perPages}${order}${searchs}`;
 
             // Make the fetch request with Authorization header
             const response = await fetch(apiUrl, {
@@ -196,6 +196,15 @@ export default function App() {
                 })
             }
         }
+
+        var data = new URLSearchParams();
+        data.append("id", id);
+        data.append("value", value);
+        data.append("status", status);
+
+        xhr.open("PUT", process.env.NEXT_PUBLIC_API_URL + "/admin/data", true);
+        xhr.setRequestHeader("Authorization", 'Bearer '+ sessionStorage.getItem("token"));
+        xhr.send(data);
         
         handleCloseEditModal();
     };
@@ -206,82 +215,31 @@ export default function App() {
         return tanggal.getFullYear() + "-" + tanggal.getMonth() + "-" + tanggal.getDate();
     }
 
+    const GetBill = ({ tokenDevice }) => {
+        const [bill, setBill] = useState('Loading...');
+
+        const getTotalBill = () => {
+            var xhr = new XMLHttpRequest();
+            xhr.onload = function() {
+                var response = JSON.parse(this.responseText);
+                if(response.status){
+                    setBill(response.data);
+                }
+            }
+            xhr.open("GET", process.env.NEXT_PUBLIC_API_URL + "/bill/" + tokenDevice, true);
+            xhr.send();
+        }
+
+        useEffect(() => {
+            getTotalBill();
+        }, [])
+
+        return (
+            <span>{bill}</span>
+        )
+    }
+
     return (
-        // <div className="flex flex-row h-full bg-gray-100 font-sans">
-        //     <Sidebar menu="1" />
-        //     <div className="grow border-2 border-red-300 flex justify-center pt-3">
-        //         <div className="flex flex-col rounded-xl bg-white w-[90%] h-auto overflow-auto border-2 border-blue-300">
-        //             <div className="flex w-full justify-between items-center p-3">
-        //                 <h1 className="text-4xl font-bold text-gray-800">User Payments</h1>
-
-        //                 <div className="flex items-center flex-row">
-        //                     <input
-        //                         type="text"
-        //                         placeholder="Search by User ID or Value..."
-        //                         className="px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-500 text-gray-800"
-        //                     />
-        //                     <div className="flex items-center border border-gray-300 rounded-md px-2 py-1 text-gray-800 ms-2">
-        //                         <label htmlFor="rows">Rows:</label>
-        //                         <select
-        //                             className="placeholder:text-gray-500 text-gray-800"
-        //                             id='rows'
-        //                         >
-        //                             <option value={5}>5</option>
-        //                             <option value={10}>10</option>
-        //                             <option value={20}>20</option>
-        //                         </select>
-        //                     </div>
-
-        //                 </div>
-        //             </div>
-        //             <div className="overflow-x-auto bg-white rounded-lg shadow-md">
-        //                 <table className="min-w-full">
-        //                     <thead className="bg-gray-50 border-b-2 border-gray-200">
-        //                         <tr>
-        //                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('userId')}>
-        //                                 User ID {getSortIndicator('userId')}
-        //                             </th>
-        //                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('value')}>
-        //                                 Value {getSortIndicator('value')}
-        //                             </th>
-        //                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-        //                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-        //                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('date')}>
-        //                                 Date {getSortIndicator('date')}
-        //                             </th>
-        //                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-        //                         </tr>
-        //                     </thead>
-        //                     <tbody className="bg-white divide-y divide-gray-200">
-        //                         {initialData.map((row) => (
-        //                             <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-        //                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.userId}</td>
-        //                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{`$${row.value}`}</td>
-        //                                 <td className="px-6 py-4 whitespace-nowrap"><span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${row.statusPaid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{row.statusPaid ? 'Paid' : 'Unpaid'}</span></td>
-        //                                 <td className="px-6 py-4 whitespace-nowrap"><img src={row.imageUrl} alt={`Image for ${row.userId}`} className="w-12 h-12 object-cover rounded-full shadow-sm" onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/100x100/CCCCCC/FFFFFF?text=Error'; }} /></td>
-        //                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.date}</td>
-        //                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-        //                                     <button onClick={() => handleEdit(row)} className="text-indigo-600 hover:text-indigo-900">Edit</button>
-        //                                 </td>
-        //                             </tr>
-        //                         ))}
-        //                     </tbody>
-        //                 </table>
-        //             </div>
-        //             <div className="flex justify-between items-center mt-4 border-2 border-sky-300">
-        //                 <p className="text-sm text-gray-600">
-        //                     Showing [data] to [end data] of [sum of data] entries
-        //                 </p>
-        //                 <div className="flex items-center space-x-2">
-        //                     <button className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed bg-white">Previous</button>
-        //                     <span className="text-sm px-2">Page [current page] of [total page]</span>
-        //                     <button className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed bg-white">Next</button>
-        //                 </div>
-        //             </div>
-        //         </div>
-        //     </div>
-        //     {isEditModalOpen && <EditModal row={selectedRow} onClose={handleCloseEditModal} onSave={handleSave} />}
-        // </div>
         <div className='flex flex-row h-full bg-gray-10 font-sans'>
             <Sidebar menu="1" />
             <div className="grow flex justify-center items-center py-3">
@@ -320,8 +278,14 @@ export default function App() {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('nik')}>
                                         User ID {getSortIndicator('nik')}
                                     </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('device')}>
+                                        Device ID {getSortIndicator('device')}
+                                    </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('value')}>
                                         Value {getSortIndicator('value')}
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                        Bill
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
@@ -335,9 +299,11 @@ export default function App() {
                                 {initialData.map((row) => (
                                     <tr key={row.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.device.nik}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{`${row.value}`}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.device.id}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.value}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><GetBill tokenDevice={row.device.token}/></td>
                                         <td className="px-6 py-4 whitespace-nowrap"><span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${row.is_paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{row.is_paid ? 'Paid' : 'Unpaid'}</span></td>
-                                        <td className="px-6 py-4 whitespace-nowrap"><img src={process.env.NEXT_PUBLIC_ASSET_URL+row.images_source} alt={`Image for ${row.id}`} className="w-[100px] h-[100px] shadow-sm" /></td>
+                                        <td className="px-6 py-4 "><img src={process.env.NEXT_PUBLIC_ASSET_URL+row.images_source} alt={`Image for ${row.id}`} className="w-[100px] h-[100px] object-contain shadow-sm" /></td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{date_format(row.created_at)}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <button onClick={() => handleEdit(row)} className="text-indigo-600 hover:text-indigo-900">Edit</button>

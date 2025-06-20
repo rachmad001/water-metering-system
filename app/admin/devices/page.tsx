@@ -39,18 +39,20 @@ const EditModal = ({ row, onClose, onSave }) => {
     const [editedNama, setEditedNama] = useState('');
     const [editedNik, setEditedNik] = useState('');
     const [editedAlamat, setEditedAlamat] = useState('');
+    const [editedHarga, setEditedHarga] = useState('');
 
     useEffect(() => {
         if (row) {
             setEditedNik(row.nik);
             setEditedNama(row.nama);
             setEditedAlamat(row.alamat);
+            setEditedHarga(row.harga);
         }
     }, [row]);
 
     const handleSave = (e) => {
         e.preventDefault();
-        onSave({ ...row, nik: editedNik, nama: editedNama, alamat: editedAlamat});
+        onSave({ ...row, nik: editedNik, nama: editedNama, alamat: editedAlamat, harga: editedHarga});
     };
 
     const getNik = (nik) => {setEditedNik(nik)}
@@ -71,6 +73,10 @@ const EditModal = ({ row, onClose, onSave }) => {
                     <div className="mb-4">
                         <label htmlFor="edit_nama" className="block text-sm font-medium text-gray-700 mb-1">Name Device</label>
                         <input id="edit_nama" type="text" value={editedNama} onChange={(e) => setEditedNama(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    </div>
+                    <div className="mb-4">
+                        <label htmlFor="edit_harga" className="block text-sm font-medium text-gray-700 mb-1">Harga</label>
+                        <input id="edit_harga" type="text" value={editedHarga} onChange={(e) => setEditedHarga(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
                     <div className="mb-4">
                         <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Address Device</label>
@@ -242,10 +248,11 @@ const AddModal = ({ onClose, onSave }) => {
     const [editedNik, setEditedNik] = useState('');
     const [editedNama, setEditedNama] = useState('');
     const [editedAlamat, setEditedAlamat] = useState('');
+    const [editedHarga, setEditedHarga] = useState('');
 
     const handleSave = (e) => {
         e.preventDefault();
-        onSave({ nik: editedNik, nama: editedNama, alamat: editedAlamat });
+        onSave({ nik: editedNik, nama: editedNama, alamat: editedAlamat, harga: editedHarga });
     };
 
     const getNik = (nik) => {
@@ -266,6 +273,10 @@ const AddModal = ({ onClose, onSave }) => {
                     <div className="mb-4">
                         <label htmlFor="edit_nama" className="block text-sm font-medium text-gray-700 mb-1">Name Device</label>
                         <input id="edit_nama" type="text" value={editedNama} onChange={(e) => setEditedNama(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    </div>
+                    <div className="mb-4">
+                        <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Harga</label>
+                        <input id="edit_alamat" type="number" value={editedHarga} onChange={(e) => setEditedHarga(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
                     <div className="mb-4">
                         <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Address Device</label>
@@ -398,6 +409,7 @@ export default function App() {
         formData.append("nik", row.nik);
         formData.append("nama", row.nama);
         formData.append("alamat", row.alamat);
+        formData.append("harga", row.harga);
 
         var xhr = new XMLHttpRequest();
         xhr.onload = function () {
@@ -439,6 +451,7 @@ export default function App() {
         formData.append("nik", row.nik);
         formData.append("nama", row.nama);
         formData.append("alamat", row.alamat);
+        formData.append("harga", row.harga);
 
         var xhr = new XMLHttpRequest();
         xhr.onload = function () {
@@ -524,6 +537,9 @@ export default function App() {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('created_at')}>
                                         Register Date {getSortIndicator('created_at')}
                                     </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('harga')}>
+                                        Harga {getSortIndicator('harga')}
+                                    </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                 </tr>
                             </thead>
@@ -535,6 +551,7 @@ export default function App() {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.nama}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.alamat}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{date_format(row.created_at)}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.harga}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <button onClick={() => handleEdit(row)} className="text-indigo-600 hover:text-indigo-900">Edit</button>
                                         </td>
