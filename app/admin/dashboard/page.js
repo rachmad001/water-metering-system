@@ -46,7 +46,7 @@ const EditModal = ({ row, onClose, onSave }) => {
 
     const handleSave = (e) => {
         e.preventDefault();
-        onSave(row.id , editedValue, editedStatus);
+        onSave(row.id, editedValue, editedStatus);
     };
 
     if (!row) return null;
@@ -177,9 +177,9 @@ export default function App() {
 
     const handleSave = (id, value, status) => {
         var xhr = new XMLHttpRequest();
-        xhr.onload = function(){
+        xhr.onload = function () {
             var response = JSON.parse(this.responseText);
-            if(response.status){
+            if (response.status) {
                 loadDataTable();
                 Swal.fire({
                     icon: "success",
@@ -187,7 +187,7 @@ export default function App() {
                     timer: 2000,
                     showConfirmButton: false,
                 })
-            }else {
+            } else {
                 Swal.fire({
                     icon: "error",
                     title: response.message,
@@ -203,9 +203,9 @@ export default function App() {
         data.append("status", status);
 
         xhr.open("PUT", process.env.NEXT_PUBLIC_API_URL + "/admin/data", true);
-        xhr.setRequestHeader("Authorization", 'Bearer '+ sessionStorage.getItem("token"));
+        xhr.setRequestHeader("Authorization", 'Bearer ' + sessionStorage.getItem("token"));
         xhr.send(data);
-        
+
         handleCloseEditModal();
     };
 
@@ -215,18 +215,22 @@ export default function App() {
         return tanggal.getFullYear() + "-" + tanggal.getMonth() + "-" + tanggal.getDate();
     }
 
-    const GetBill = ({ tokenDevice }) => {
+    const GetBill = ({ tokenDevice, id }) => {
         const [bill, setBill] = useState('Loading...');
 
         const getTotalBill = () => {
             var xhr = new XMLHttpRequest();
-            xhr.onload = function() {
+            xhr.onload = function () {
                 var response = JSON.parse(this.responseText);
-                if(response.status){
-                    setBill(response.data);
+                if (response.status) {
+                    var total = new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR'
+                    }).format(response.data.total);
+                    setBill(total);
                 }
             }
-            xhr.open("GET", process.env.NEXT_PUBLIC_API_URL + "/bill/" + tokenDevice, true);
+            xhr.open("GET", process.env.NEXT_PUBLIC_API_URL + "/bill/" + tokenDevice + "/" + id, true);
             xhr.send();
         }
 
@@ -301,9 +305,9 @@ export default function App() {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.device.nik}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.device.id}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.value}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><GetBill tokenDevice={row.device.token}/></td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><GetBill tokenDevice={row.device.token} id={row.id} /></td>
                                         <td className="px-6 py-4 whitespace-nowrap"><span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${row.is_paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{row.is_paid ? 'Paid' : 'Unpaid'}</span></td>
-                                        <td className="px-6 py-4 "><img src={process.env.NEXT_PUBLIC_ASSET_URL+row.images_source} alt={`Image for ${row.id}`} className="w-[100px] h-[100px] object-contain shadow-sm" /></td>
+                                        <td className="px-6 py-4 "><img src={process.env.NEXT_PUBLIC_ASSET_URL + row.images_source} alt={`Image for ${row.id}`} className="w-[1000px] h-[100px] shadow-sm" /></td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{date_format(row.created_at)}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <button onClick={() => handleEdit(row)} className="text-indigo-600 hover:text-indigo-900">Edit</button>
@@ -322,7 +326,7 @@ export default function App() {
                             <button
                                 onClick={() => {
                                     var page = pages;
-                                    page = page-1;
+                                    page = page - 1;
                                     setPages(page)
                                 }}
                                 disabled={currentPages === 1}
@@ -334,7 +338,7 @@ export default function App() {
                             <button
                                 onClick={() => {
                                     var page = pages;
-                                    page = page+1;
+                                    page = page + 1;
                                     setPages(page)
                                 }}
                                 disabled={currentPages === totalPages}

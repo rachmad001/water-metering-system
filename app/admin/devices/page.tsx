@@ -46,28 +46,7 @@ const EditModal = ({ row, onClose, onSave }) => {
         harga: 2000
     }]);
 
-    const addItem = () => {
-        var newItem = {
-            min: 0,
-            max: 10,
-            harga: 2000
-        }
-        setItems([...items, newItem]);
-    };
-
-    // Update
-    const updateItem = (index, updated) => {
-        const newItems = [...items];
-        newItems[index] = updated;
-        setItems(newItems);
-    };
-
-    // Delete
-    const deleteItem = (index) => {
-        const newItems = [...items];
-        newItems.splice(index, 1);
-        setItems(newItems);
-    };
+    const [labelError, setLabelError] = useState('');
 
     useEffect(() => {
         if (row) {
@@ -80,7 +59,91 @@ const EditModal = ({ row, onClose, onSave }) => {
 
     const handleSave = (e) => {
         e.preventDefault();
-        onSave({ ...row, nik: editedNik, nama: editedNama, alamat: editedAlamat, harga: items });
+        if (
+            labelError == "" && 
+            editedNik != "" &&
+            editedNama != "" &&
+            editedAlamat != ""
+        ) {
+            onSave({...row, nik: editedNik, nama: editedNama, alamat: editedAlamat, harga: items });
+        }else {
+            Swal.fire({
+                icon: "warning",
+                title: "MOHON PERHATIKAN FORM",
+                text: "Mohon pastikan seluruh form terisi dan pastikan pada pengaturan harga tidak terdapat harga yang beririsan",
+                showConfirmButton: true
+            })
+        }
+    };
+
+    const addItem = () => {
+        var newItem = {
+            min: 0,
+            max: 10,
+            harga: 2000
+        }
+        if (items.length > 0) {
+            newItem = {
+                min: parseInt(items[items.length - 1].max.toString()) + 1,
+                max: parseInt(items[items.length - 1].max.toString()) + 10,
+                harga: 2000
+            }
+        }
+        setItems([...items, newItem]);
+    };
+
+    // Update
+    const updateItem = (index, updated) => {
+        const newItems = [...items];
+        newItems[index] = updated;
+
+        var baris = index + 1;
+        var prevBaris = index;
+        var nextBaris = index + 2;
+        if (index == 0) {
+            if (items.length > 1) {
+                if (updated.max >= items[index + 1].min) {
+                    setLabelError(`Max pada baris ${baris} tidak boleh melebih Min pada baris ${nextBaris}`);
+                } else if (updated.min >= updated.max || updated.max <= updated.min) {
+                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
+                } else {
+                    setLabelError('')
+                }
+            } else {
+                if (updated.min >= updated.max || updated.max <= updated.min) {
+                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
+                } else {
+                    setLabelError('')
+                }
+            }
+        } else {
+            if (items.length > index + 1) {
+                if (updated.max >= items[index + 1].min) {
+                    setLabelError(`Max pada baris ${baris} tidak boleh melebih Min pada baris ${nextBaris}`);
+                } else if (updated.min >= updated.max || updated.max <= updated.min) {
+                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
+                } else if (updated.min <= items[index - 1].max) {
+                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih kecil dari max pada baris ${prevBaris}`)
+                } else {
+                    setLabelError('')
+                }
+            } else if (updated.min >= updated.max || updated.max <= updated.min) {
+                setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
+            } else if (updated.min <= items[index - 1].max) {
+                setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih kecil dari max pada baris ${prevBaris}`)
+            } else {
+                setLabelError('')
+            }
+        }
+        setItems(newItems);
+
+    };
+
+    // Delete
+    const deleteItem = (index) => {
+        const newItems = [...items];
+        newItems.splice(index, 1);
+        setItems(newItems);
     };
 
     const getNik = (nik) => { setEditedNik(nik) }
@@ -89,7 +152,7 @@ const EditModal = ({ row, onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 bg-[rgba(190,190,190,0.5)] flex justify-center items-center z-10">
-            <div className="bg-white p-8 rounded-lg shadow-2xl w-full h-auto max-h-full max-w-md overflow-y-scroll">
+            <div className="bg-white p-8 rounded-lg shadow-2xl w-full h-auto max-h-full max-w-lg overflow-y-scroll">
                 <div className="flex justify-between items-center border-b pb-4 mb-4">
                     <h3 className="text-2xl font-semibold text-gray-800">Register Entry:</h3>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
@@ -106,7 +169,63 @@ const EditModal = ({ row, onClose, onSave }) => {
                         <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Address Device</label>
                         <input id="edit_alamat" type="text" value={editedAlamat} onChange={(e) => setEditedAlamat(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
+                    <div className="mb-4">
+                        <button
+                            type='button'
+                            className='px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                            onClick={addItem}
+                        >
+                            TAMBAH HARGA +
+                        </button>
+                        {items.map((item, indexedDB, array) => (
+                            <div className="flex flex-row items-end mt-2 w-full">
+                                <div className="w-[30%] px-1">
+                                    <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Min</label>
+                                    <input
+                                        type="number"
+                                        value={item.min}
+                                        onChange={(e) => {
 
+                                            updateItem(indexedDB, { ...item, min: e.target.value })
+                                        }}
+                                        className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                </div>
+                                <div className="w-[30%] px-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Max</label>
+                                    <input
+                                        type="number"
+                                        value={item.max}
+                                        onChange={(e) => {
+                                            updateItem(indexedDB, { ...item, max: e.target.value })
+                                        }}
+                                        className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                </div>
+                                <div className="w-[30%] px-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Harga</label>
+                                    <input
+                                        type="number"
+                                        value={item.harga}
+                                        onChange={(e) => {
+                                            updateItem(indexedDB, { ...item, harga: e.target.value })
+                                        }}
+                                        className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                </div>
+                                <button
+                                    type='button'
+                                    className='bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2'
+                                    onClick={() => {
+                                        deleteItem(indexedDB)
+                                    }}
+                                >
+                                    Hapus
+                                </button>
+                            </div>
+                        ))}
+                        <span className='block text-sm font-medium text-red-400 mb-1'>{labelError}</span>
+                    </div>
                     <div className="flex justify-end space-x-4">
                         <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">Cancel</button>
                         <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Save Changes</button>
@@ -279,10 +398,25 @@ const AddModal = ({ onClose, onSave }) => {
         max: 10,
         harga: 2000
     }]);
+    const [labelError, setLabelError] = useState('');
 
     const handleSave = (e) => {
         e.preventDefault();
-        onSave({ nik: editedNik, nama: editedNama, alamat: editedAlamat, harga: items });
+        if (
+            labelError == "" && 
+            editedNik != "" &&
+            editedNama != "" &&
+            editedAlamat != ""
+        ) {
+            onSave({ nik: editedNik, nama: editedNama, alamat: editedAlamat, harga: items });
+        }else {
+            Swal.fire({
+                icon: "warning",
+                title: "MOHON PERHATIKAN FORM",
+                text: "Mohon pastikan seluruh form terisi dan pastikan pada pengaturan harga tidak terdapat harga yang beririsan",
+                showConfirmButton: true
+            })
+        }
     };
 
     const getNik = (nik) => {
@@ -295,6 +429,13 @@ const AddModal = ({ onClose, onSave }) => {
             max: 10,
             harga: 2000
         }
+        if (items.length > 0) {
+            newItem = {
+                min: items[items.length - 1].max + 1,
+                max: items[items.length - 1].max + 10,
+                harga: 2000
+            }
+        }
         setItems([...items, newItem]);
     };
 
@@ -302,7 +443,47 @@ const AddModal = ({ onClose, onSave }) => {
     const updateItem = (index, updated) => {
         const newItems = [...items];
         newItems[index] = updated;
+
+        var baris = index + 1;
+        var prevBaris = index;
+        var nextBaris = index + 2;
+        if (index == 0) {
+            if (items.length > 1) {
+                if (updated.max >= items[index + 1].min) {
+                    setLabelError(`Max pada baris ${baris} tidak boleh melebih Min pada baris ${nextBaris}`);
+                } else if (updated.min >= updated.max || updated.max <= updated.min) {
+                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
+                } else {
+                    setLabelError('')
+                }
+            } else {
+                if (updated.min >= updated.max || updated.max <= updated.min) {
+                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
+                } else {
+                    setLabelError('')
+                }
+            }
+        } else {
+            if (items.length > index + 1) {
+                if (updated.max >= items[index + 1].min) {
+                    setLabelError(`Max pada baris ${baris} tidak boleh melebih Min pada baris ${nextBaris}`);
+                } else if (updated.min >= updated.max || updated.max <= updated.min) {
+                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
+                } else if (updated.min <= items[index - 1].max) {
+                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih kecil dari max pada baris ${prevBaris}`)
+                } else {
+                    setLabelError('')
+                }
+            } else if (updated.min >= updated.max || updated.max <= updated.min) {
+                setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
+            } else if (updated.min <= items[index - 1].max) {
+                setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih kecil dari max pada baris ${prevBaris}`)
+            } else {
+                setLabelError('')
+            }
+        }
         setItems(newItems);
+
     };
 
     // Delete
@@ -314,7 +495,7 @@ const AddModal = ({ onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 bg-[rgba(190,190,190,0.5)] flex justify-center items-center z-10">
-            <div className="bg-white p-4 rounded-lg shadow-2xl w-full h-auto max-h-full max-w-md overflow-y-scroll">
+            <div className="bg-white p-8 rounded-lg shadow-2xl w-full h-auto max-h-full max-w-lg overflow-y-scroll">
                 <div className="flex justify-between items-center border-b pb-4 mb-4">
                     <h3 className="text-2xl font-semibold text-gray-800">Register Entry:</h3>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
@@ -327,10 +508,6 @@ const AddModal = ({ onClose, onSave }) => {
                         <label htmlFor="edit_nama" className="block text-sm font-medium text-gray-700 mb-1">Name Device</label>
                         <input id="edit_nama" type="text" value={editedNama} onChange={(e) => setEditedNama(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
-                    {/* <div className="mb-4">
-                        <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Harga</label>
-                        <input id="edit_alamat" type="number" value={editedHarga} onChange={(e) => setEditedHarga(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </div> */}
                     <div className="mb-4">
                         <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Address Device</label>
                         <input id="edit_alamat" type="text" value={editedAlamat} onChange={(e) => setEditedAlamat(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
@@ -351,7 +528,7 @@ const AddModal = ({ onClose, onSave }) => {
                                         type="number"
                                         value={item.min}
                                         onChange={(e) => {
-                                            
+
                                             updateItem(indexedDB, { ...item, min: e.target.value })
                                         }}
                                         className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -390,10 +567,17 @@ const AddModal = ({ onClose, onSave }) => {
                                 </button>
                             </div>
                         ))}
+                        <span className='block text-sm font-medium text-red-400 mb-1'>{labelError}</span>
                     </div>
+
                     <div className="flex justify-end space-x-4">
                         <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">Cancel</button>
-                        <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Save Changes</button>
+                        <button
+                            type="submit"
+                            className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        >
+                            Save Changes
+                        </button>
                     </div>
                 </form>
             </div>
@@ -560,7 +744,7 @@ export default function App() {
         formData.append("nik", row.nik);
         formData.append("nama", row.nama);
         formData.append("alamat", row.alamat);
-        formData.append("harga", row.harga);
+        formData.append("harga", JSON.stringify(row.harga));
 
         var xhr = new XMLHttpRequest();
         xhr.onload = function () {
