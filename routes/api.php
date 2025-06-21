@@ -15,3 +15,6 @@ Route::post('add-live-pictures/{tokenUser}/{tokenDevice}', [DeviceController::cl
 
 Route::get('list_device', [DeviceController::class, 'list_all_by_pelanggan'])->middleware(User::class);
 Route::get('data-device/{tokenDevice}', [DeviceController::class, 'get_data'])->middleware(User::class);
+
+//cek tagihan
+Route::get('bill/{tokenDevice}/{id}', [DeviceController::class, 'getBill']);

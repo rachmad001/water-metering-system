@@ -6,11 +6,12 @@ use App\Models\DataDevice;
 use App\Models\device;
 use App\Models\Pelanggan;
 use App\Http\Controllers\Controller;
+use App\Models\Harga;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use CURLFile;
-
+use Illuminate\Support\Facades\DB;
 
 class DeviceController extends Controller
 {
@@ -49,7 +50,8 @@ class DeviceController extends Controller
             'nama' => 'required',
             'alamat' => 'required',
             'nik' => 'required',
-            'id' => 'required'
+            'id' => 'required',
+            'harga' => 'required'
         ]);
 
         if ($validator->fails()) {
@@ -61,16 +63,24 @@ class DeviceController extends Controller
             'alamat' => $request->alamat,
             'nik' => $request->nik
         ];
+
         $check_nik = Pelanggan::where('nik', $request->nik);
         if ($check_nik->count() == 0) {
             return response($this->responses(false, 'Nik not found'), 404);
         }
 
-        if(device::where('id', $request->id)->count() == 0){
+        if (device::where('id', $request->id)->count() == 0) {
             return response($this->responses(false, 'id tidak ditemukan'), 404);
         }
 
         $inserts = device::where('id', $request->id)->update($data_updated);
+
+        $deleted_harga = Harga::where('device', $request->id)->delete();
+        $harga = json_decode($request->harga, true);
+        foreach($harga as $item){
+            $item['device'] = $request->id;
+            $harga_create = Harga::create($item);
+        }
 
         return $this->responses(true, 'Device successusfully updated');
     }
@@ -197,7 +207,7 @@ class DeviceController extends Controller
         $order_type = $request->get('type_order', NULL);
         $per_pages = $request->get('per_page', 10);
 
-        $data = device::with('pelanggan');
+        $data = device::with('pelanggan', 'harga');
         if ($search != NULL) {
             $data->where(function ($query) use ($search) {
                 $query->where('id', 'LIKE', '%' . $search . '%')
@@ -282,19 +292,20 @@ class DeviceController extends Controller
         return $data_device->paginate($per_pages);
     }
 
-    function edit_data_device(Request $request){
+    function edit_data_device(Request $request)
+    {
         $validator = Validator::make($request->all(), [
             'status' => 'required',
             'value' => 'required',
             'id' => 'required'
         ]);
 
-        if($validator->fails()){
+        if ($validator->fails()) {
             return response($this->responses(false, implode(",", $validator->messages()->all())), 400);
         }
 
         $data_device = DataDevice::where('id', $request->id);
-        if($data_device->count() == 0){
+        if ($data_device->count() == 0) {
             return response($this->responses(false, 'id tidak ditemukan'), 404);
         }
 
@@ -304,6 +315,51 @@ class DeviceController extends Controller
         ]);
 
         return $this->responses(true, 'Berhasil memperbarui data');
+    }
+
+    function getBill($tokenDevice, $id)
+    {
+        $device = device::where('token', $tokenDevice);
+        if ($device->count() == 0) {
+            return response($this->responses(false, "device tidak ditemukan"), 404);
+        }
+
+        $device = $device->get()[0];
+
+        if(DataDevice::where('id', $id)->where('device', $device->id)->count() == 0){
+            return response($this->responses(false, 'Data tidak ditemukan'), 404);
+        }
+        // $harga = $device->harga;
+        $latest_payment = DataDevice::where('device', $device->id)->where('is_paid', 1)->orderBy('created_at', 'desc')->first()?->value ?? 0;
+        $latest_data = DataDevice::where('id', $id)->where('device', $device->id)->first()->value;
+        if ($latest_payment > $latest_data) {
+            $selisih = 100000 - $latest_payment;
+            $latest_data = $latest_data + $selisih;
+            $latest_payment = 0;
+        }
+        $selisih_awal = $latest_data - $latest_payment;
+        $selisih = $latest_data - $latest_payment;
+        $total = 0;
+
+        $harga = Harga::where('device', $device->id)->get();
+        $index = 0;
+        while($selisih > 0 && $index < count($harga)){
+            if($harga[$index]->max <= $selisih){
+                $total += $harga[$index]->max * $harga[$index]->harga;
+                $selisih -= $harga[$index]->max;
+            }else {
+                $total += $selisih * $harga[$index]->harga;
+                $selisih = 0;
+            }
+            $index++;
+        }
+
+        return $this->responses(true, "Berhasil mendapatkan data", [
+            'latest_data' => $latest_data,
+            'latest_payment' => $latest_payment,
+            'selisih' => $selisih_awal,
+            'total' => $total
+        ]);
     }
 
     function generateTokenDevice()
@@ -318,6 +374,65 @@ class DeviceController extends Controller
         return $token;
     }
 
+    function data_admin_dashboard(Request $request)
+    {
+        $search = $request->get('search', NULL);
+        $ordered = $request->get('order', NULL);
+        $type_order = $request->get('type_order', NULL);
+        $per_pages = $request->get('per_page', 10);
+
+        $data_device = DataDevice::select(
+            DB::raw('max(id) AS id'),
+            'device',
+            DB::raw('max(value) AS value'),
+            'is_paid',
+            DB::raw('max(images_source) AS images_source'),
+            DB::raw('max(execution_time) AS execution_time'),
+            DB::raw('MAX(created_at) as created_at')
+        );
+        if ($search != NULL) {
+            $data_device->where(function ($query) use ($search) {
+                $query->where('device', 'LIKE', '%' . $search . '%')
+                    ->orWhere('value', 'LIKE', '%' . $search . '%')
+                    ->orWhere('created_at', 'LIKE', '%' . $search . '%');
+            });
+
+            if ($ordered != NULL) {
+                if ($ordered == 'nik') {
+                    $data_device->with(['device.pelanggan' => function ($query) use ($search, $type_order) {
+                        $query->select('nik', 'nama')->where('nik', 'LIKE', '%' . $search . '%')->orderBy('nik', $type_order);
+                    }]);
+                } else {
+                    $data_device->with(['device.pelanggan' => function ($query) use ($search) {
+                        $query->select('nik', 'nama')->where('nik', 'LIKE', '%' . $search . '%');
+                    }])->orderBy($ordered, $type_order);
+                }
+            } else {
+                $data_device->with(['device.pelanggan' => function ($query) use ($search) {
+                    $query->select('nik', 'nama')->where('nik', 'LIKE', '%' . $search . '%');
+                }]);
+            }
+        } else {
+            if ($ordered != NULL) {
+                if ($ordered == 'nik') {
+                    $data_device->with(['device.pelanggan' => function ($query) use ($search, $type_order) {
+                        $query->select('nik', 'nama')->orderBy('nik', $type_order);
+                    }]);
+                } else {
+                    $data_device->with(['device.pelanggan' => function ($query) use ($search) {
+                        $query->select('nik', 'nama');
+                    }])->orderBy($ordered, $type_order);
+                }
+            } else {
+                $data_device->with(['device.pelanggan' => function ($query) use ($search) {
+                    $query->select('nik', 'nama');
+                }]);
+            }
+        }
+
+        return $data_device->groupBy('device', 'is_paid')->paginate($per_pages);
+        // return $data_device->groupBy('device', 'is_paid')->get();
+    }
     function responses($status, $message, $data = array())
     {
         return json_encode(array(

@@ -26,4 +26,16 @@ class device extends Model
     public function data(){
         return $this->hasMany(DataDevice::class, 'device', 'id');
     }
+
+    public function latest_bill(){
+        return $this->hasOne(DataDevice::class, 'device', 'id')->where('is_paid', 0);
+    }
+
+    public function latest_paid() {
+        return $this->hasOne(DataDevice::class, 'device', 'id')->where('is_paid', 1);
+    }
+
+    public function harga() {
+        return $this->hasMany(Harga::class, 'device', 'id');
+    }
 }

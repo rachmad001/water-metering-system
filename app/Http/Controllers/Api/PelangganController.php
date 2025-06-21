@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\DataDevice;
 use App\Models\device;
+use App\Models\Harga;
 use App\Models\Pelanggan;
 use CURLFile;
 use Illuminate\Http\Request;
@@ -107,7 +108,8 @@ class PelangganController extends Controller
         $validator = Validator::make($request->all(), [
             'nama' => 'required',
             'alamat' => 'required',
-            'nik' => 'required'
+            'nik' => 'required',
+            'harga' => 'required'
         ]);
 
         if ($validator->fails()) {
@@ -126,6 +128,12 @@ class PelangganController extends Controller
             'nik' => $request->nik,
             'token' => $token
         ]);
+
+        $harga = json_decode($request->harga, true);
+        foreach($harga as $item){
+            $item['device'] = $inserts->id;
+            $harga_create = Harga::create($item);
+        }
 
         return $this->responses(true, 'Device successusfully registry');
     }

@@ -26,5 +26,6 @@ Route::prefix('device')->middleware(Admin::class)->group(function(){
 Route::prefix('data')->middleware(Admin::class)->group(function(){
     Route::get('/', [DeviceController::class, 'get_all_data_device']);
     Route::put('/', [DeviceController::class, 'edit_data_device']);
+    Route::get('/dashboard', [DeviceController::class, 'data_admin_dashboard']);
 });
 
