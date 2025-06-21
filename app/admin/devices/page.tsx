@@ -40,22 +40,50 @@ const EditModal = ({ row, onClose, onSave }) => {
     const [editedNik, setEditedNik] = useState('');
     const [editedAlamat, setEditedAlamat] = useState('');
     const [editedHarga, setEditedHarga] = useState('');
+    const [items, setItems] = useState([{
+        min: 0,
+        max: 10,
+        harga: 2000
+    }]);
+
+    const addItem = () => {
+        var newItem = {
+            min: 0,
+            max: 10,
+            harga: 2000
+        }
+        setItems([...items, newItem]);
+    };
+
+    // Update
+    const updateItem = (index, updated) => {
+        const newItems = [...items];
+        newItems[index] = updated;
+        setItems(newItems);
+    };
+
+    // Delete
+    const deleteItem = (index) => {
+        const newItems = [...items];
+        newItems.splice(index, 1);
+        setItems(newItems);
+    };
 
     useEffect(() => {
         if (row) {
             setEditedNik(row.nik);
             setEditedNama(row.nama);
             setEditedAlamat(row.alamat);
-            setEditedHarga(row.harga);
+            setItems(row.harga);
         }
     }, [row]);
 
     const handleSave = (e) => {
         e.preventDefault();
-        onSave({ ...row, nik: editedNik, nama: editedNama, alamat: editedAlamat, harga: editedHarga});
+        onSave({ ...row, nik: editedNik, nama: editedNama, alamat: editedAlamat, harga: items });
     };
 
-    const getNik = (nik) => {setEditedNik(nik)}
+    const getNik = (nik) => { setEditedNik(nik) }
 
     if (!row) return null;
 
@@ -68,20 +96,17 @@ const EditModal = ({ row, onClose, onSave }) => {
                 </div>
                 <form onSubmit={handleSave}>
                     <div className="w-full mb-4">
-                        <DropDownUser balikan={getNik} label={`${row.nik} - ${row.pelanggan.nama}`}/>
+                        <DropDownUser balikan={getNik} label={`${row.nik} - ${row.pelanggan.nama}`} />
                     </div>
                     <div className="mb-4">
                         <label htmlFor="edit_nama" className="block text-sm font-medium text-gray-700 mb-1">Name Device</label>
                         <input id="edit_nama" type="text" value={editedNama} onChange={(e) => setEditedNama(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
                     <div className="mb-4">
-                        <label htmlFor="edit_harga" className="block text-sm font-medium text-gray-700 mb-1">Harga</label>
-                        <input id="edit_harga" type="text" value={editedHarga} onChange={(e) => setEditedHarga(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </div>
-                    <div className="mb-4">
                         <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Address Device</label>
                         <input id="edit_alamat" type="text" value={editedAlamat} onChange={(e) => setEditedAlamat(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
+
                     <div className="flex justify-end space-x-4">
                         <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">Cancel</button>
                         <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Save Changes</button>
@@ -249,19 +274,47 @@ const AddModal = ({ onClose, onSave }) => {
     const [editedNama, setEditedNama] = useState('');
     const [editedAlamat, setEditedAlamat] = useState('');
     const [editedHarga, setEditedHarga] = useState('');
+    const [items, setItems] = useState([{
+        min: 0,
+        max: 10,
+        harga: 2000
+    }]);
 
     const handleSave = (e) => {
         e.preventDefault();
-        onSave({ nik: editedNik, nama: editedNama, alamat: editedAlamat, harga: editedHarga });
+        onSave({ nik: editedNik, nama: editedNama, alamat: editedAlamat, harga: items });
     };
 
     const getNik = (nik) => {
         setEditedNik(nik)
     }
 
+    const addItem = () => {
+        var newItem = {
+            min: 0,
+            max: 10,
+            harga: 2000
+        }
+        setItems([...items, newItem]);
+    };
+
+    // Update
+    const updateItem = (index, updated) => {
+        const newItems = [...items];
+        newItems[index] = updated;
+        setItems(newItems);
+    };
+
+    // Delete
+    const deleteItem = (index) => {
+        const newItems = [...items];
+        newItems.splice(index, 1);
+        setItems(newItems);
+    };
+
     return (
         <div className="fixed inset-0 bg-[rgba(190,190,190,0.5)] flex justify-center items-center z-10">
-            <div className="bg-white p-8 rounded-lg shadow-2xl w-full h-auto max-h-full max-w-md overflow-y-scroll">
+            <div className="bg-white p-4 rounded-lg shadow-2xl w-full h-auto max-h-full max-w-md overflow-y-scroll">
                 <div className="flex justify-between items-center border-b pb-4 mb-4">
                     <h3 className="text-2xl font-semibold text-gray-800">Register Entry:</h3>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
@@ -274,13 +327,69 @@ const AddModal = ({ onClose, onSave }) => {
                         <label htmlFor="edit_nama" className="block text-sm font-medium text-gray-700 mb-1">Name Device</label>
                         <input id="edit_nama" type="text" value={editedNama} onChange={(e) => setEditedNama(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
-                    <div className="mb-4">
+                    {/* <div className="mb-4">
                         <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Harga</label>
                         <input id="edit_alamat" type="number" value={editedHarga} onChange={(e) => setEditedHarga(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </div>
+                    </div> */}
                     <div className="mb-4">
                         <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Address Device</label>
                         <input id="edit_alamat" type="text" value={editedAlamat} onChange={(e) => setEditedAlamat(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    </div>
+                    <div className="mb-4">
+                        <button
+                            type='button'
+                            className='px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                            onClick={addItem}
+                        >
+                            TAMBAH HARGA +
+                        </button>
+                        {items.map((item, indexedDB, array) => (
+                            <div className="flex flex-row items-end mt-2 w-full">
+                                <div className="w-[30%] px-1">
+                                    <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Min</label>
+                                    <input
+                                        type="number"
+                                        value={item.min}
+                                        onChange={(e) => {
+                                            
+                                            updateItem(indexedDB, { ...item, min: e.target.value })
+                                        }}
+                                        className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                </div>
+                                <div className="w-[30%] px-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Max</label>
+                                    <input
+                                        type="number"
+                                        value={item.max}
+                                        onChange={(e) => {
+                                            updateItem(indexedDB, { ...item, max: e.target.value })
+                                        }}
+                                        className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                </div>
+                                <div className="w-[30%] px-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Harga</label>
+                                    <input
+                                        type="number"
+                                        value={item.harga}
+                                        onChange={(e) => {
+                                            updateItem(indexedDB, { ...item, harga: e.target.value })
+                                        }}
+                                        className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                </div>
+                                <button
+                                    type='button'
+                                    className='bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2'
+                                    onClick={() => {
+                                        deleteItem(indexedDB)
+                                    }}
+                                >
+                                    Hapus
+                                </button>
+                            </div>
+                        ))}
                     </div>
                     <div className="flex justify-end space-x-4">
                         <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">Cancel</button>
@@ -409,7 +518,7 @@ export default function App() {
         formData.append("nik", row.nik);
         formData.append("nama", row.nama);
         formData.append("alamat", row.alamat);
-        formData.append("harga", row.harga);
+        formData.append("harga", JSON.stringify(row.harga));
 
         var xhr = new XMLHttpRequest();
         xhr.onload = function () {
@@ -537,8 +646,8 @@ export default function App() {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('created_at')}>
                                         Register Date {getSortIndicator('created_at')}
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('harga')}>
-                                        Harga {getSortIndicator('harga')}
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                                        Harga
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                 </tr>
@@ -551,7 +660,14 @@ export default function App() {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.nama}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.alamat}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{date_format(row.created_at)}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.harga}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                            <ol className="list-decimal">
+                                                {row.harga.map((item) => (
+                                                    <li>min : {item.min}, max : {item.max}, harga : {item.harga}</li>
+                                                ))}
+                                            </ol>
+
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <button onClick={() => handleEdit(row)} className="text-indigo-600 hover:text-indigo-900">Edit</button>
                                         </td>
