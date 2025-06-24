@@ -5,7 +5,7 @@ import Swal from 'sweetalert2';
 import { Dropdown, DropdownItem, DropdownDivider, ListGroup, ListGroupItem, createTheme, ThemeProvider } from 'flowbite-react';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 
-const Sidebar = ({ menu }) => (
+const Sidebar = ({ menu }: {menu: any}) => (
     <div className="w-64 h-full bg-gray-800 text-white flex flex-col">
         <div className="px-6 py-4 border-b border-gray-700">
             <h2 className="text-2xl font-semibold">Dashboard</h2>
@@ -340,7 +340,7 @@ const DropDownUser = ({ balikan, label = "Pilih pelanggan" }) => {
             {isOpen && (
                 <div className="absolute w-full top-12 border border-gray-300 rounded-md shadow-sm bg-white" ref={divRef}>
                     <div className="w-full p-1 bg-white-200">
-                        <input id="edit_nik" type="text" placeholder='Cari nik atau nama' value={searchPelanggan} onChange={(e) => searchPelanggan(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        <input id="edit_nik" type="text" placeholder='Cari nik atau nama' value={searchPelanggan} onChange={(e) => setSearchPelanggan(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
 
                     {initialDataPelanggan.map((row) => (
@@ -801,7 +801,7 @@ export default function App() {
                                     className="placeholder:text-gray-500 text-gray-800"
                                     id='rows'
                                     value={perPages}
-                                    onChange={(e) => setPerPages(e.target.value)}
+                                    onChange={(e) => setPerPages(Number(e.target.value))}
                                 >
                                     <option value={5}>5</option>
                                     <option value={10}>10</option>

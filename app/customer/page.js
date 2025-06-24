@@ -3,6 +3,13 @@ import './style.css'
 import { useState, useEffect, useMemo } from 'react';
 
 export default function Customer() {
+    const [profile, setProfile] = useState()
+
+    useEffect(() => {
+        const val = JSON.parse(sessionStorage.getItem("profile"));
+        setProfile(val)
+    }, [])
+
     const [initialData, setInitialData] = useState([]);
 
     const [sortConfig, setSortConfig] = useState({ key: 'nik', direction: 'asc' });
@@ -33,7 +40,7 @@ export default function Customer() {
             // Construct the API URL
             const searchs = search != null ? "&search=" + search : "";
             const order = `&order=${sortConfig.key}&type_order=${sortConfig.direction}`
-            const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/admin/data/dashboard?page=${pages}&per_page=${perPages}${order}${searchs}`;
+            const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/data-dashboard-customer?page=${pages}&per_page=${perPages}${order}${searchs}`;
 
             // Make the fetch request with Authorization header
             const response = await fetch(apiUrl, {
@@ -125,7 +132,7 @@ export default function Customer() {
                 <div className="col-span-2 rounded-lg flex flex-col text-[#066979] bg-[#FFFFFF] p-3">
                     <div className="flex flex-row justify-between items-center">
                         <div className="flex items-center gap-2">
-                            <h3 className="text-xl font-semibold">Your Subheading Here</h3>
+                            <h3 className="text-xl font-semibold">CUSTOMER PROFILE</h3>
                         </div>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentcolor" className="size-6 hover:cursor-pointer">
                             <path strokeLinecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
@@ -135,14 +142,14 @@ export default function Customer() {
                     <table>
                         <tbody>
                             <tr>
-                                <td><span className="font-semibold">NIK:</span> 123221345</td>
-                                <td><span className="font-semibold">NIK:</span> 123221345</td>
-                                <td><span className="font-semibold">NIK:</span> 123221345</td>
+                                <td><span className="font-semibold">NIK:</span> {profile?.nik}</td>
+                                <td><span className="font-semibold">NAME:</span> {profile?.nama}</td>
+                                <td><span className="font-semibold">BIRTH DATE:</span> {profile?.tanggal_lahir}</td>
                             </tr>
                             <tr>
-                                <td><span className="font-semibold">NIK:</span> 123221345</td>
-                                <td><span className="font-semibold">NIK:</span> 123221345</td>
-                                <td><span className="font-semibold">NIK:</span> 123221345</td>
+                                <td><span className="font-semibold">PHONE NUMBER:</span> {profile?.no_hp}</td>
+                                <td><span className="font-semibold">EMAIL:</span> {profile?.email}</td>
+                                <td><span className="font-semibold">ADDRESS:</span> {profile?.alamat}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -180,9 +187,6 @@ export default function Customer() {
                         <table className="min-w-full">
                             <thead className="bg-gray-50 border-b-2 border-gray-200">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('nik')}>
-                                        User ID {getSortIndicator('nik')}
-                                    </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('device')}>
                                         Device ID {getSortIndicator('device')}
                                     </th>
@@ -197,22 +201,17 @@ export default function Customer() {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('created_at')}>
                                         Date {getSortIndicator('created_at')}
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {initialData.map((row) => (
                                     <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.device.nik}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.device.id}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.value}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><GetBill tokenDevice={row.device.token} id={row.id} /></td>
                                         <td className="px-6 py-4 whitespace-nowrap"><span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${row.is_paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{row.is_paid ? 'Paid' : 'Unpaid'}</span></td>
                                         <td className="px-6 py-4 "><img src={process.env.NEXT_PUBLIC_ASSET_URL + row.images_source} alt={`Image for ${row.id}`} className="w-[200px] h-[130px] shadow-sm" /></td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{date_format(row.created_at)}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button onClick={() => handleEdit(row)} className="text-indigo-600 hover:text-indigo-900">Edit</button>
-                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
