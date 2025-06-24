@@ -9,7 +9,7 @@
         function refreshImage() {
             counting++;
             var img = document.getElementById("liveImage");
-            img.src = "Rn1Ji2xt2dQE63xCBjmkDb25Qk6bLP/live.jpg?t=" + counting;
+            img.src = "{{env('APP_URL')}}/{{$token}}/live.jpg?t=" + counting;
         }
 
         setInterval(refreshImage, 1000); // Refresh every 3 seconds
