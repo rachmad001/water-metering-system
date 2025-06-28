@@ -16,6 +16,7 @@ class device extends Model
         'nama',
         'alamat',
         'nik',
+        'category',
         'token'
     ];
 
@@ -35,7 +36,7 @@ class device extends Model
         return $this->hasOne(DataDevice::class, 'device', 'id')->where('is_paid', 1);
     }
 
-    public function harga() {
-        return $this->hasMany(Harga::class, 'device', 'id');
+    public function kategori() {
+        return $this->hasOne(CustomerCategory::class, 'id', 'category');
     }
 }

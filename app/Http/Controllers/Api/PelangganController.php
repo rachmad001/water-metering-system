@@ -126,14 +126,9 @@ class PelangganController extends Controller
             'nama' => $request->nama,
             'alamat' => $request->alamat,
             'nik' => $request->nik,
+            'category' => $request->harga,
             'token' => $token
         ]);
-
-        $harga = json_decode($request->harga, true);
-        foreach($harga as $item){
-            $item['device'] = $inserts->id;
-            $harga_create = Harga::create($item);
-        }
 
         return $this->responses(true, 'Device successusfully registry');
     }

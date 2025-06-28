@@ -51,7 +51,7 @@ class DeviceController extends Controller
             'alamat' => 'required',
             'nik' => 'required',
             'id' => 'required',
-            'harga' => 'required'
+            'harga' => 'required|exists:customer_category,id'
         ]);
 
         if ($validator->fails()) {
@@ -61,7 +61,8 @@ class DeviceController extends Controller
         $data_updated = [
             'nama' => $request->nama,
             'alamat' => $request->alamat,
-            'nik' => $request->nik
+            'nik' => $request->nik,
+            'category' => $request->harga
         ];
 
         $check_nik = Pelanggan::where('nik', $request->nik);
@@ -74,13 +75,6 @@ class DeviceController extends Controller
         }
 
         $inserts = device::where('id', $request->id)->update($data_updated);
-
-        $deleted_harga = Harga::where('device', $request->id)->delete();
-        $harga = json_decode($request->harga, true);
-        foreach($harga as $item){
-            $item['device'] = $request->id;
-            $harga_create = Harga::create($item);
-        }
 
         return $this->responses(true, 'Device successusfully updated');
     }
@@ -128,54 +122,6 @@ class DeviceController extends Controller
             } else {
                 return $this->responses(false, 'Data read the number fail');
             }
-            // $imagePath = $request->file('imageFile')->getPathname();
-            // $imageName = $tokenDevice.'_'.$request->file('imageFile')->getClientOriginalName();
-
-            // $curl = curl_init();
-
-            // $postData = [
-            //     'image' => new CURLFile($imagePath, $request->file('imageFile')->getMimeType(), $imageName)
-            // ];
-
-            // curl_setopt_array($curl, [
-            //     CURLOPT_URL => env('OCR_URL') . "/api/ocr/", // Adjust API endpoint
-            //     CURLOPT_RETURNTRANSFER => true,
-            //     CURLOPT_POST => true,
-            //     CURLOPT_POSTFIELDS => $postData,
-            // ]);
-
-            // $response = curl_exec($curl);
-            // $err = curl_error($curl);
-
-            // curl_close($curl);
-
-            // if ($err) {
-            //     return response()->json(['success' => false, 'message' => 'cURL Error: ' . $err], 500);
-            // } else {
-            //     $response = json_decode($response);
-            //     if ($response->text != "") {
-            //         $tanggal = date("Y-m-d_H-i-s");
-            //         $available_data = DataDevice::where('device', $device->first()->id)->whereDate('created_at', '=', $tanggal)->where('value', '=', $response->text);
-            //         if ($available_data->count() == 0) {
-            //             $files = $request->file('imageFile');
-            //             $filesName = $tanggal . '.' . $files->getClientOriginalExtension();
-            //             $files->move(public_path($tokenDevice), $filesName);
-            //             $inserts = DataDevice::create([
-            //                 'device' => $device->first()->id,
-            //                 'value' => $response->text,
-            //                 'images_source' => $tokenDevice . '/' . $filesName,
-            //                 'execution_time' => $response->execution_time
-            //             ]);
-
-            //             copy(public_path($tokenDevice . '/' . $filesName), public_path($tokenDevice . '/live.jpg'));
-            //         }
-            //         return $this->responses(true, 'Data received successfully, the value is ' . $response->text);
-            //     } else {
-            //         $files = $request->file('imageFile');
-            //         $files->move(public_path($tokenDevice), 'live.jpg');
-            //         return $this->responses(false, 'Data read the number fail');
-            //     }
-            // }
         } else {
             return response($this->responses(false, 'imageFile not found'), 400);
         }
@@ -207,7 +153,7 @@ class DeviceController extends Controller
         $order_type = $request->get('type_order', NULL);
         $per_pages = $request->get('per_page', 10);
 
-        $data = device::with('pelanggan', 'harga');
+        $data = device::with('pelanggan', 'kategori');
         if ($search != NULL) {
             $data->where(function ($query) use ($search) {
                 $query->where('id', 'LIKE', '%' . $search . '%')

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\DeviceController;
+use App\Http\Controllers\Api\HargaController;
 use App\Http\Controllers\Api\PelangganController;
 use App\Http\Middleware\Admin;
 use Illuminate\Support\Facades\Route;
@@ -27,5 +28,11 @@ Route::prefix('data')->middleware(Admin::class)->group(function(){
     Route::get('/', [DeviceController::class, 'get_all_data_device']);
     Route::put('/', [DeviceController::class, 'edit_data_device']);
     Route::get('/dashboard', [DeviceController::class, 'data_admin_dashboard']);
+});
+
+Route::prefix('harga')->middleware(Admin::class)->group(function(){
+    Route::post('/', [HargaController::class, 'add']);
+    Route::get('/', [HargaController::class, 'get']);
+    Route::put('/', [HargaController::class, 'edit']);
 });
 
