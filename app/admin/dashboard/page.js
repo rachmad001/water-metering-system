@@ -25,6 +25,11 @@ const Sidebar = ({ menu }) => (
                         Devices
                     </a>
                 </li>
+                <li>
+                    <a href="/admin/pricing" className={`block px-4 py-2 rounded transition-colors duration-200 ${menu == "4" ? "bg-gray-700" : ""} hover:bg-gray-700`}>
+                        Pricing
+                    </a>
+                </li>
             </ul>
         </nav>
         <div className="p-4 border-t border-gray-700">

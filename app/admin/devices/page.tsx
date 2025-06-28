@@ -27,6 +27,11 @@ const Sidebar = ({ menu }: {menu: any}) => (
                         Devices
                     </a>
                 </li>
+                <li>
+                    <a href="/admin/pricing" className={`block px-4 py-2 rounded transition-colors duration-200 ${menu == "4" ? "bg-gray-700" : ""} hover:bg-gray-700`}>
+                        Pricing
+                    </a>
+                </li>
             </ul>
         </nav>
         <div className="p-4 border-t border-gray-700">
@@ -38,115 +43,40 @@ const Sidebar = ({ menu }: {menu: any}) => (
 const EditModal = ({ row, onClose, onSave }) => {
     const [editedNama, setEditedNama] = useState('');
     const [editedNik, setEditedNik] = useState('');
-    const [editedAlamat, setEditedAlamat] = useState('');
-    const [editedHarga, setEditedHarga] = useState('');
-    const [items, setItems] = useState([{
-        min: 0,
-        max: 10,
-        harga: 2000
-    }]);
-
-    const [labelError, setLabelError] = useState('');
+    const [editedAlamat, setEditedAlamat] = useState(''); 
+    const [editedHarga, setEditedHarga] = useState(''); 
 
     useEffect(() => {
         if (row) {
             setEditedNik(row.nik);
             setEditedNama(row.nama);
             setEditedAlamat(row.alamat);
-            setItems(row.harga);
+            setEditedHarga(row.kategori?.id || "");
         }
     }, [row]);
 
     const handleSave = (e) => {
         e.preventDefault();
         if (
-            labelError == "" && 
             editedNik != "" &&
             editedNama != "" &&
-            editedAlamat != ""
+            editedAlamat != "" &&
+            editedHarga != ""
         ) {
-            onSave({...row, nik: editedNik, nama: editedNama, alamat: editedAlamat, harga: items });
+            onSave({...row, nik: editedNik, nama: editedNama, alamat: editedAlamat, harga: editedHarga });
         }else {
             Swal.fire({
                 icon: "warning",
                 title: "MOHON PERHATIKAN FORM",
-                text: "Mohon pastikan seluruh form terisi dan pastikan pada pengaturan harga tidak terdapat harga yang beririsan",
+                text: "Mohon pastikan seluruh form terisi",
                 showConfirmButton: true
             })
         }
     };
 
-    const addItem = () => {
-        var newItem = {
-            min: 0,
-            max: 10,
-            harga: 2000
-        }
-        if (items.length > 0) {
-            newItem = {
-                min: parseInt(items[items.length - 1].max.toString()) + 1,
-                max: parseInt(items[items.length - 1].max.toString()) + 10,
-                harga: 2000
-            }
-        }
-        setItems([...items, newItem]);
-    };
-
-    // Update
-    const updateItem = (index, updated) => {
-        const newItems = [...items];
-        newItems[index] = updated;
-
-        var baris = index + 1;
-        var prevBaris = index;
-        var nextBaris = index + 2;
-        if (index == 0) {
-            if (items.length > 1) {
-                if (updated.max >= items[index + 1].min) {
-                    setLabelError(`Max pada baris ${baris} tidak boleh melebih Min pada baris ${nextBaris}`);
-                } else if (updated.min >= updated.max || updated.max <= updated.min) {
-                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
-                } else {
-                    setLabelError('')
-                }
-            } else {
-                if (updated.min >= updated.max || updated.max <= updated.min) {
-                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
-                } else {
-                    setLabelError('')
-                }
-            }
-        } else {
-            if (items.length > index + 1) {
-                if (updated.max >= items[index + 1].min) {
-                    setLabelError(`Max pada baris ${baris} tidak boleh melebih Min pada baris ${nextBaris}`);
-                } else if (updated.min >= updated.max || updated.max <= updated.min) {
-                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
-                } else if (updated.min <= items[index - 1].max) {
-                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih kecil dari max pada baris ${prevBaris}`)
-                } else {
-                    setLabelError('')
-                }
-            } else if (updated.min >= updated.max || updated.max <= updated.min) {
-                setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
-            } else if (updated.min <= items[index - 1].max) {
-                setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih kecil dari max pada baris ${prevBaris}`)
-            } else {
-                setLabelError('')
-            }
-        }
-        setItems(newItems);
-
-    };
-
-    // Delete
-    const deleteItem = (index) => {
-        const newItems = [...items];
-        newItems.splice(index, 1);
-        setItems(newItems);
-    };
-
     const getNik = (nik) => { setEditedNik(nik) }
+
+    const getHarga = (id) => { setEditedHarga(id) }
 
     if (!row) return null;
 
@@ -154,7 +84,7 @@ const EditModal = ({ row, onClose, onSave }) => {
         <div className="fixed inset-0 bg-[rgba(190,190,190,0.5)] flex justify-center items-center z-10">
             <div className="bg-white p-8 rounded-lg shadow-2xl w-full h-auto max-h-full max-w-lg overflow-y-scroll">
                 <div className="flex justify-between items-center border-b pb-4 mb-4">
-                    <h3 className="text-2xl font-semibold text-gray-800">Register Entry:</h3>
+                    <h3 className="text-2xl font-semibold text-gray-800">Edit Entry:</h3>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
                 </div>
                 <form onSubmit={handleSave}>
@@ -169,62 +99,8 @@ const EditModal = ({ row, onClose, onSave }) => {
                         <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Address Device</label>
                         <input id="edit_alamat" type="text" value={editedAlamat} onChange={(e) => setEditedAlamat(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
-                    <div className="mb-4">
-                        <button
-                            type='button'
-                            className='px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-                            onClick={addItem}
-                        >
-                            TAMBAH HARGA +
-                        </button>
-                        {items.map((item, indexedDB, array) => (
-                            <div className="flex flex-row items-end mt-2 w-full">
-                                <div className="w-[30%] px-1">
-                                    <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Min</label>
-                                    <input
-                                        type="number"
-                                        value={item.min}
-                                        onChange={(e) => {
-
-                                            updateItem(indexedDB, { ...item, min: e.target.value })
-                                        }}
-                                        className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    />
-                                </div>
-                                <div className="w-[30%] px-1">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Max</label>
-                                    <input
-                                        type="number"
-                                        value={item.max}
-                                        onChange={(e) => {
-                                            updateItem(indexedDB, { ...item, max: e.target.value })
-                                        }}
-                                        className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    />
-                                </div>
-                                <div className="w-[30%] px-1">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Harga</label>
-                                    <input
-                                        type="number"
-                                        value={item.harga}
-                                        onChange={(e) => {
-                                            updateItem(indexedDB, { ...item, harga: e.target.value })
-                                        }}
-                                        className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    />
-                                </div>
-                                <button
-                                    type='button'
-                                    className='bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2'
-                                    onClick={() => {
-                                        deleteItem(indexedDB)
-                                    }}
-                                >
-                                    Hapus
-                                </button>
-                            </div>
-                        ))}
-                        <span className='block text-sm font-medium text-red-400 mb-1'>{labelError}</span>
+                    <div className="w-full mb-4">
+                        <DropDownKategori balikan={getHarga} label={`${row.kategori?.nama || 'Pilih kategori'}`} />
                     </div>
                     <div className="flex justify-end space-x-4">
                         <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">Cancel</button>
@@ -388,32 +264,179 @@ const DropDownUser = ({ balikan, label = "Pilih pelanggan" }) => {
         </div>
     )
 }
+
+const DropDownKategori = ({ balikan, label = "Pilih kategori pelanggan" }) => {
+    const divRef = useRef<HTMLDivElement>(null);
+    const divRefBtn = useRef<HTMLButtonElement>(null);
+    const [isOpen, setIsOpen] = useState(false);
+    const [pelanggan, setPelanggan] = useState(label);
+
+    const [initialDataPelanggan, setInitialDataPelanggan] = useState([]);
+    const [perPagesPelanggan, setPerPagesPelanggan] = useState(10)
+    const [pagesPelanggan, setPagesPelanggan] = useState(1);
+    const [from, setFrom] = useState(0);
+    const [to, setTo] = useState(0);
+    const [total, setTotal] = useState(0);
+    const [currentPages, setCurrentPages] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+
+    const [searchPelanggan, setSearchPelanggan] = useState("");
+
+    useEffect(() => {
+        loadDataTablePelanggan()
+    }, [])
+
+    useEffect(() => {
+        loadDataTablePelanggan()
+    }, [pagesPelanggan, searchPelanggan])
+
+    const loadDataTablePelanggan = async () => {
+        const token = sessionStorage.getItem("token");
+        try {
+            // Construct the API URL
+            const searchs = searchPelanggan != null ? "&search=" + searchPelanggan : "";
+            const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/admin/harga?page=${pagesPelanggan}&per_page=${perPagesPelanggan}${searchs}`;
+
+            // Make the fetch request with Authorization header
+            const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            // Check if the request was successful
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // Parse the JSON response
+            const responses = await response.json();
+            console.log(responses);
+            setCurrentPages(responses.current_page)
+            setTotalPages(responses.last_page)
+            setPagesPelanggan(responses.current_page)
+            setFrom(responses.from)
+            setTo(responses.to)
+            setTotal(responses.total)
+
+            setInitialDataPelanggan(responses.data)
+
+        } catch (e) {
+            if (e instanceof Error) {
+                console.log(e.message);
+            } else {
+                console.log("An unknown error occurred.");
+            }
+            console.error("Failed to fetch data:", e);
+        }
+    }
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            //jika klik diluar
+            if (divRef.current && !divRef.current.contains(event.target as Node)) {
+                if (divRefBtn.current && divRefBtn.current.contains(event.target as Node)) {
+                    var states = isOpen
+                    setIsOpen(prev => !prev)
+                } else {
+                    setIsOpen(false)
+                }
+            } else {
+                if (divRefBtn.current && divRefBtn.current.contains(event.target as Node)) {
+                    setIsOpen(prev => !prev)
+                }
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside)
+        }
+    }, [])
+
+    return (
+        <div className="w-full relative">
+            <button
+                type='button'
+                className='text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500'
+                ref={divRefBtn}
+            >
+                {pelanggan}
+            </button>
+
+            {isOpen && (
+                <div className="absolute w-full top-12 border border-gray-300 rounded-md shadow-sm bg-white" ref={divRef}>
+                    <div className="w-full p-1 bg-white-200">
+                        <input id="edit_nik" type="text" placeholder='Cari kategori' value={searchPelanggan} onChange={(e) => setSearchPelanggan(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    </div>
+
+                    {initialDataPelanggan.map((row) => (
+                        <div
+                            className="w-full p-1 border border-gray-300 text-gray-800"
+                            onClick={() => {
+                                balikan(row.id)
+                                setPelanggan(`${row.nama}`)
+                                setIsOpen(false)
+                            }}
+                        >{row.nik} - {row.nama}</div>
+                    ))}
+                    <div className="flex justify-between items-center p-2">
+                        <p className="text-sm text-gray-600">
+                            Showing {from} to {to} of {total} entries
+                        </p>
+                        <div className="flex items-center space-x-2 text-gray-600">
+                            {/* <button className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed">Previous</button> */}
+                            <button
+                                onClick={() => {
+                                    var page = pagesPelanggan;
+                                    page = page - 1;
+                                    setPagesPelanggan(page)
+                                }}
+                                disabled={currentPages === 1}
+                                className="relative inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Previous
+                            </button>
+                            <span className="text-sm px-2">Page {currentPages} of {totalPages}</span>
+                            <button
+                                onClick={() => {
+                                    var page = pagesPelanggan;
+                                    page = page + 1;
+                                    setPagesPelanggan(page)
+                                }}
+                                disabled={currentPages === totalPages}
+                                className="relative inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >Next</button>
+                            {/* <button className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed">Next</button> */}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
 const AddModal = ({ onClose, onSave }) => {
     const [editedNik, setEditedNik] = useState('');
     const [editedNama, setEditedNama] = useState('');
     const [editedAlamat, setEditedAlamat] = useState('');
     const [editedHarga, setEditedHarga] = useState('');
-    const [items, setItems] = useState([{
-        min: 0,
-        max: 10,
-        harga: 2000
-    }]);
-    const [labelError, setLabelError] = useState('');
 
     const handleSave = (e) => {
         e.preventDefault();
         if (
-            labelError == "" && 
             editedNik != "" &&
             editedNama != "" &&
-            editedAlamat != ""
+            editedAlamat != "" &&
+            editedHarga != ""
         ) {
-            onSave({ nik: editedNik, nama: editedNama, alamat: editedAlamat, harga: items });
+            onSave({ nik: editedNik, nama: editedNama, alamat: editedAlamat, harga: editedHarga });
         }else {
             Swal.fire({
                 icon: "warning",
                 title: "MOHON PERHATIKAN FORM",
-                text: "Mohon pastikan seluruh form terisi dan pastikan pada pengaturan harga tidak terdapat harga yang beririsan",
+                text: "Mohon pastikan seluruh form terisi",
                 showConfirmButton: true
             })
         }
@@ -423,75 +446,9 @@ const AddModal = ({ onClose, onSave }) => {
         setEditedNik(nik)
     }
 
-    const addItem = () => {
-        var newItem = {
-            min: 0,
-            max: 10,
-            harga: 2000
-        }
-        if (items.length > 0) {
-            newItem = {
-                min: items[items.length - 1].max + 1,
-                max: items[items.length - 1].max + 10,
-                harga: 2000
-            }
-        }
-        setItems([...items, newItem]);
-    };
-
-    // Update
-    const updateItem = (index, updated) => {
-        const newItems = [...items];
-        newItems[index] = updated;
-
-        var baris = index + 1;
-        var prevBaris = index;
-        var nextBaris = index + 2;
-        if (index == 0) {
-            if (items.length > 1) {
-                if (updated.max >= items[index + 1].min) {
-                    setLabelError(`Max pada baris ${baris} tidak boleh melebih Min pada baris ${nextBaris}`);
-                } else if (updated.min >= updated.max || updated.max <= updated.min) {
-                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
-                } else {
-                    setLabelError('')
-                }
-            } else {
-                if (updated.min >= updated.max || updated.max <= updated.min) {
-                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
-                } else {
-                    setLabelError('')
-                }
-            }
-        } else {
-            if (items.length > index + 1) {
-                if (updated.max >= items[index + 1].min) {
-                    setLabelError(`Max pada baris ${baris} tidak boleh melebih Min pada baris ${nextBaris}`);
-                } else if (updated.min >= updated.max || updated.max <= updated.min) {
-                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
-                } else if (updated.min <= items[index - 1].max) {
-                    setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih kecil dari max pada baris ${prevBaris}`)
-                } else {
-                    setLabelError('')
-                }
-            } else if (updated.min >= updated.max || updated.max <= updated.min) {
-                setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih besar dari max pada baris ${baris}`)
-            } else if (updated.min <= items[index - 1].max) {
-                setLabelError(`Min pada baris ${baris} tidak boleh sama atau lebih kecil dari max pada baris ${prevBaris}`)
-            } else {
-                setLabelError('')
-            }
-        }
-        setItems(newItems);
-
-    };
-
-    // Delete
-    const deleteItem = (index) => {
-        const newItems = [...items];
-        newItems.splice(index, 1);
-        setItems(newItems);
-    };
+    const getHarga = (id) => {
+        setEditedHarga(id)
+    }
 
     return (
         <div className="fixed inset-0 bg-[rgba(190,190,190,0.5)] flex justify-center items-center z-10">
@@ -513,63 +470,8 @@ const AddModal = ({ onClose, onSave }) => {
                         <input id="edit_alamat" type="text" value={editedAlamat} onChange={(e) => setEditedAlamat(e.target.value)} className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
                     <div className="mb-4">
-                        <button
-                            type='button'
-                            className='px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-                            onClick={addItem}
-                        >
-                            TAMBAH HARGA +
-                        </button>
-                        {items.map((item, indexedDB, array) => (
-                            <div className="flex flex-row items-end mt-2 w-full">
-                                <div className="w-[30%] px-1">
-                                    <label htmlFor="edit_alamat" className="block text-sm font-medium text-gray-700 mb-1">Min</label>
-                                    <input
-                                        type="number"
-                                        value={item.min}
-                                        onChange={(e) => {
-
-                                            updateItem(indexedDB, { ...item, min: e.target.value })
-                                        }}
-                                        className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    />
-                                </div>
-                                <div className="w-[30%] px-1">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Max</label>
-                                    <input
-                                        type="number"
-                                        value={item.max}
-                                        onChange={(e) => {
-                                            updateItem(indexedDB, { ...item, max: e.target.value })
-                                        }}
-                                        className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    />
-                                </div>
-                                <div className="w-[30%] px-1">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Harga</label>
-                                    <input
-                                        type="number"
-                                        value={item.harga}
-                                        onChange={(e) => {
-                                            updateItem(indexedDB, { ...item, harga: e.target.value })
-                                        }}
-                                        className="text-gray-800 mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    />
-                                </div>
-                                <button
-                                    type='button'
-                                    className='bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2'
-                                    onClick={() => {
-                                        deleteItem(indexedDB)
-                                    }}
-                                >
-                                    Hapus
-                                </button>
-                            </div>
-                        ))}
-                        <span className='block text-sm font-medium text-red-400 mb-1'>{labelError}</span>
+                        <DropDownKategori balikan={getHarga}/>
                     </div>
-
                     <div className="flex justify-end space-x-4">
                         <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">Cancel</button>
                         <button
@@ -702,7 +604,7 @@ export default function App() {
         formData.append("nik", row.nik);
         formData.append("nama", row.nama);
         formData.append("alamat", row.alamat);
-        formData.append("harga", JSON.stringify(row.harga));
+        formData.append("harga", row.harga);
 
         var xhr = new XMLHttpRequest();
         xhr.onload = function () {
@@ -744,7 +646,7 @@ export default function App() {
         formData.append("nik", row.nik);
         formData.append("nama", row.nama);
         formData.append("alamat", row.alamat);
-        formData.append("harga", JSON.stringify(row.harga));
+        formData.append("harga", row.harga);
 
         var xhr = new XMLHttpRequest();
         xhr.onload = function () {
@@ -831,7 +733,7 @@ export default function App() {
                                         Register Date {getSortIndicator('created_at')}
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
-                                        Harga
+                                        Customer Category
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                 </tr>
@@ -845,12 +747,7 @@ export default function App() {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.alamat}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{date_format(row.created_at)}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            <ol className="list-decimal">
-                                                {row.harga.map((item) => (
-                                                    <li>min : {item.min}, max : {item.max}, harga : {item.harga}</li>
-                                                ))}
-                                            </ol>
-
+                                            {row.kategori?.nama}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <button onClick={() => handleEdit(row)} className="text-indigo-600 hover:text-indigo-900">Edit</button>
