@@ -27,4 +27,8 @@ class DataDevice extends Model
     public function pelanggan(){
         return $this->hasOneThrough(Pelanggan::class, device::class, 'nik', 'nik', 'device', 'id');
     }
+
+    public function list_paid(){
+        return $this->hasMany(DataDevice::class, 'device', 'device');
+    }
 }
