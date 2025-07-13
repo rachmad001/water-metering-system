@@ -154,13 +154,18 @@ class DeviceController extends Controller
         $per_pages = $request->get('per_page', 10);
 
         $data = device::with('pelanggan', 'kategori');
+
         if ($search != NULL) {
-            $data->where(function ($query) use ($search) {
-                $query->where('id', 'LIKE', '%' . $search . '%')
+            $data->where('id', 'LIKE', '%' . $search . '%')
                     ->orWhere('nama', 'LIKE', '%' . $search . '%')
                     ->orWhere('alamat', 'LIKE', '%' . $search . '%')
                     ->orWhere('nik', 'LIKE', '%' . $search . '%');
-            });
+            // $data->where(function ($query) use ($search) {
+            //     $query->where('id', 'LIKE', '%' . $search . '%')
+            //         ->orWhere('nama', 'LIKE', '%' . $search . '%')
+            //         ->orWhere('alamat', 'LIKE', '%' . $search . '%')
+            //         ->orWhere('nik', 'LIKE', '%' . $search . '%');
+            // });
         }
 
         if ($order != NULL) {
@@ -287,7 +292,7 @@ class DeviceController extends Controller
         $selisih = $latest_data - $latest_payment;
         $total = 0;
 
-        $harga = Harga::where('device', $device->id)->get();
+        $harga = Harga::where('customer_category', $device->category)->get();
         $index = 0;
         while($selisih > 0 && $index < count($harga)){
             if($harga[$index]->max <= $selisih){
