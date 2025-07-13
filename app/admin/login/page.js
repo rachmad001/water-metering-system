@@ -72,7 +72,7 @@ export default function Home() {
     };
 
     return (
-        <div className="w-full h-screen bg-red-200 flex justify-center items-center bg-[url(/bg-login.png)]">
+        <div className="w-full h-screen flex justify-center items-center bg-[url(/bg-login.png)]">
             <div className="w-[300px] min-w-[250px] p-3 bg-cyan-500/50 rounded-lg">
                 <h3 className={`${karla.className} text-xl font-semibold text-center text-[#066979]`}>Login</h3>
                 {/* <!-- Username Input Group --> */}

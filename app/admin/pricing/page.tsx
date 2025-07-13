@@ -605,7 +605,7 @@ export default function App() {
             <div className="grow flex justify-center items-center py-3">
                 <div className="flex flex-col rounded-xl bg-white w-[90%] h-auto max-h-full overflow-y-scroll scrollbar-hide border-2 border-[#C0ECF4]">
                     <div className="flex w-full justify-between items-center p-3">
-                        <h1 className="text-4xl font-bold text-gray-800">User Devices</h1>
+                        <h1 className="text-4xl font-bold text-gray-800">Pricing</h1>
 
                         <div className="flex items-center flex-row">
                             <input

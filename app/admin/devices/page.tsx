@@ -537,6 +537,7 @@ export default function App() {
 
             // Parse the JSON response
             const responses = await response.json();
+            console.log(responses.data);
             console.log(responses);
             setCurrentPages(responses.current_page)
             setTotalPages(responses.last_page)
@@ -740,7 +741,7 @@ export default function App() {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {initialData.map((row) => (
-                                    <tr key={row.nik} className="hover:bg-gray-50 transition-colors">
+                                    <tr key={row.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.id}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.nik}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.nama}</td>
