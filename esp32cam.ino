@@ -18,8 +18,8 @@
 const char* ssid = "hotspot1234";
 const char* password = "hotspot1234";
 
-String tokenUser = "rtR5jL6na3IO1UTheMUrKOIZxy13sz";
-String tokenDevice = "Rn1Ji2xt2dQE63xCBjmkDb25Qk6bLP";
+String tokenUser = "kGJzwrCskCwBLnTmjcslu93QCwhy6q"; // REPLACE WITH YOUR TOKEN USER
+String tokenDevice = "3rIR7dZh8QBIUIPQAkrE0kK1nv2nvJ"; // REPLACE WITH YOUR TOKEN DEVICE
 
 String serverName = "192.168.137.1";  // REPLACE WITH YOUR SERVER IP
 //String serverName = "example.com";   // OR REPLACE WITH YOUR DOMAIN NAME
@@ -27,7 +27,7 @@ String serverName = "192.168.137.1";  // REPLACE WITH YOUR SERVER IP
 String serverPath = "/api/add-data-device/" + tokenUser + "/" + tokenDevice;       
 String serverPathLivePhoto = "/api/add-live-pictures/" + tokenUser + "/" + tokenDevice; 
 
-const int serverPort = 8000;
+const int serverPort = 8000; //REPLACE WITH PORT SERVER, DEFAULT 80 FOR HTTP, 443 FOR HTTTPS
 
 WiFiClient client;
 
@@ -121,6 +121,10 @@ void loop() {
 }
 
 String sendPhoto() {
+  // --- PERFORMANCE MEASUREMENT START ---
+  unsigned long startTime_us = micros(); // High-resolution timer for function duration
+  size_t initial_free_heap = esp_get_free_heap_size(); // Total free heap before function
+
   String getAll;
   String getBody;
 
@@ -239,6 +243,18 @@ String sendPhoto() {
     getBody = "Connection to " + serverName + " failed.";
     Serial.println(getBody);
   }
+
+  // --- PERFORMANCE MEASUREMENT RESULTS ---
+  unsigned long endTime_us = micros();
+  size_t final_free_heap = esp_get_free_heap_size();
+
+  Serial.println("\n--- sendPhoto() Performance Metrics ---");
+  Serial.printf("Execution Time: %lu microseconds (%.2f ms)\n", endTime_us - startTime_us, (float)(endTime_us - startTime_us) / 1000.0);
+  Serial.printf("Initial Free Heap: %lu bytes\n", initial_free_heap);
+  Serial.printf("Final Free Heap: %lu bytes\n", final_free_heap);
+  Serial.printf("Heap Change (during function): %ld bytes\n", (long)initial_free_heap - (long)final_free_heap);
+  Serial.println("-------------------------------------\n");
+  // size_t final_min_free_heap = heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT); // If you tracked this
   return getBody;
 }
 
