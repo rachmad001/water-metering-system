@@ -1,5 +1,5 @@
 // ESP32-CAM True Multi-Hop and Forwarding Controller
-// Version 2.0
+// Version 2.1
 //
 // This firmware enables a chain of ESP32-CAMs to relay images.
 // It uses WIFI_AP_STA mode for intermediate and start nodes.
@@ -24,7 +24,8 @@
 // 2. After flashing, it creates a WiFi network "ESP32-CAM-Setup". Connect to it.
 // 3. Open a browser to http://192.168.4.1/setup
 // 4. Select the node's role (Start, Hop, or End) and fill in the required details.
-// 5. After saving, the device will restart and run automatically.
+// 5. To erase all settings, go to http://<node_ip>/clear
+// 6. After saving, the device will restart and run automatically.
 
 #include "esp_camera.h"
 #include "WebServer.h"
@@ -49,6 +50,7 @@ void startConfigurationServer();
 void handleNotFound();
 void handleSetupPage();
 void handleSaveConfig();
+void handleClearConfig();
 void handleHopReceive();
 void startStartNode();
 void startHopNode();
@@ -57,6 +59,8 @@ void startSetupMode();
 void sendImageToFinalDestination(camera_fb_t *fb, String domain, String userToken, String deviceToken, String appCategory);
 void performPeriodicCapture();
 unsigned long calculateIntervalMillis();
+void clearPreferences();
+
 
 // --- HTML for the Setup Page ---
 const char* setup_html = R"rawliteral(
@@ -76,6 +80,8 @@ const char* setup_html = R"rawliteral(
         .radio-group label { display: inline-block; margin-right: 20px; font-weight: normal; }
         .btn { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; }
         .btn:hover { background-color: #0056b3; }
+        .btn-danger { background-color: #dc3545; }
+        .btn-danger:hover { background-color: #c82333; }
         .hidden { display: none; }
         .section { border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-top: 20px; background-color: #fafafa; }
         .section h3 { margin-top: 0; color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 5px;}
@@ -83,6 +89,9 @@ const char* setup_html = R"rawliteral(
         .time-group input { flex-grow: 1; }
         .time-group select { flex-grow: 2; }
         .description { font-size: 0.9em; color: #777; margin-bottom: 15px; }
+        .footer-link { text-align: center; margin-top: 20px; }
+        .footer-link a { color: #007bff; text-decoration: none; }
+        .footer-link a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -221,6 +230,9 @@ const char* setup_html = R"rawliteral(
 
             <button type="submit" class="btn">Save & Restart</button>
         </form>
+        <div class="footer-link">
+             <p>Need to start over? <a href="/clear" onclick="return confirm('Are you sure you want to clear all settings? The device will restart.');">Clear Configuration</a></p>
+        </div>
     </div>
     <script>
         function toggleSections() {
@@ -464,6 +476,7 @@ void startSetupMode() {
 void startConfigurationServer() {
   server.on("/setup", HTTP_GET, handleSetupPage);
   server.on("/saveconfig", HTTP_POST, handleSaveConfig);
+  server.on("/clear", HTTP_GET, handleClearConfig);
   server.onNotFound(handleNotFound);
   server.begin();
   Serial.println("Configuration server started.");
@@ -509,6 +522,13 @@ void handleSaveConfig() {
   delay(1000);
   ESP.restart();
 }
+
+void handleClearConfig() {
+  server.send(200, "text/html", "<html><body><h1>Configuration Cleared!</h1><p>All settings have been erased. The device will now restart in setup mode.</p></body></html>");
+  delay(1000);
+  clearPreferences();
+}
+
 
 void handleHopReceive() {
   // Check if the request is multipart/form-data or plain binary
@@ -744,4 +764,11 @@ void sendImageToFinalDestination(camera_fb_t *fb, String domain, String userToke
     Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
   }
   http.end();
+}
+
+void clearPreferences() {
+  Serial.println("Clearing all preferences...");
+  preferences.clear();
+  delay(500);
+  ESP.restart();
 }
