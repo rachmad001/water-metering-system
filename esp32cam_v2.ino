@@ -1,11 +1,13 @@
 // ESP32-CAM True Multi-Hop and Forwarding Controller
+// Version 2.0
 //
 // This firmware enables a chain of ESP32-CAMs to relay images.
-// It uses WIFI_AP_STA mode for intermediate nodes.
+// It uses WIFI_AP_STA mode for intermediate and start nodes.
 //
 // --- THREE OPERATING MODES ---
-// 1. Start-Node (Client): The first device in the chain. It only connects
-//    to the next hop. It periodically captures and sends its own picture.
+// 1. Start-Node (AP+Client): The first device in the chain. Creates a setup AP
+//    for reconfiguration and connects as a client to the next hop. It
+//    periodically captures and sends its own picture.
 //
 // 2. Hop-Node (AP+Client): An intermediate node. It creates a WiFi Access Point
 //    for the PREVIOUS node to connect to, while also connecting as a client
@@ -31,32 +33,7 @@
 #include "HTTPClient.h"
 
 // IMPORTANT: Select the correct camera model
-// #ifndef CAMERA_MODEL_AI_THINKER
-// #define CAMERA_MODEL_AI_THINKER
-// #endif
-
-// #if defined(CAMERA_MODEL_AI_THINKER)
-//   #define PWDN_GPIO_NUM     32
-//   #define RESET_GPIO_NUM    -1
-//   #define XCLK_GPIO_NUM      0
-//   #define SIOD_GPIO_NUM     26
-//   #define SIOC_GPIO_NUM     27
-//   #define Y9_GPIO_NUM       35
-//   #define Y8_GPIO_NUM       34
-//   #define Y7_GPIO_NUM       39
-//   #define Y6_GPIO_NUM       36
-//   #define Y5_GPIO_NUM       21
-//   #define Y4_GPIO_NUM       19
-//   #define Y3_GPIO_NUM       18
-//   #define Y2_GPIO_NUM        5
-//   #define VSYNC_GPIO_NUM    25
-//   #define HREF_GPIO_NUM     23
-//   #define PCLK_GPIO_NUM     22
-// #else
-//   #error "Camera model not selected"
-// #endif
-
-#define CAMERA_MODEL_AI_THINKER  // Has PSRAM
+#define CAMERA_MODEL_AI_THINKER // Has PSRAM
 #include "camera_pins.h"
 
 WebServer server(80);
@@ -68,7 +45,7 @@ unsigned long actionInterval = 60000;
 String currentMode = "";
 
 // --- Function Prototypes ---
-void startCameraServer();
+void startConfigurationServer();
 void handleNotFound();
 void handleSetupPage();
 void handleSaveConfig();
@@ -124,7 +101,8 @@ const char* setup_html = R"rawliteral(
             <!-- Start-Node Configuration -->
             <div id="startConfig" class="section hidden">
                 <h3>Start-Node Settings</h3>
-                <p class="description">This is the first node in the chain. It only connects to the next hop to send its picture.</p>
+                <p class="description">This is the first node. It connects to the next hop to send its picture, and creates a setup AP for later reconfiguration.</p>
+                <h4>Client Settings (Connect to Next Hop)</h4>
                 <div class="form-group">
                     <label for="sta_ssid">WiFi SSID of Next Hop:</label>
                     <input type="text" id="sta_ssid" name="sta_ssid">
@@ -135,7 +113,22 @@ const char* setup_html = R"rawliteral(
                 </div>
                  <div class="form-group">
                     <label for="next_hop_ip">IP Address of Next Hop:</label>
-                    <input type="text" id="next_hop_ip" name="next_hop_ip" placeholder="e.g., 192.168.4.1">
+                    <input type="text" id="next_hop_ip" name="next_hop_ip" placeholder="e.g., 192.168.5.1">
+                </div>
+                <hr>
+                <h4>Re-Setup AP Settings</h4>
+                <p class="description">Creates a WiFi network so you can re-configure this node later without re-flashing. Connect to this AP and go to its IP address.</p>
+                <div class="form-group">
+                    <label for="start_ap_ssid">Re-Setup AP SSID:</label>
+                    <input type="text" id="start_ap_ssid" name="start_ap_ssid" value="ESP32-CAM-Start-Setup">
+                </div>
+                <div class="form-group">
+                    <label for="start_ap_pass">Re-Setup AP Password:</label>
+                    <input type="password" id="start_ap_pass" name="start_ap_pass" placeholder="Leave blank for open network">
+                </div>
+                <div class="form-group">
+                    <label for="start_ap_ip">Re-Setup AP IP Address:</label>
+                    <input type="text" id="start_ap_ip" name="start_ap_ip" value="192.168.4.1">
                 </div>
             </div>
 
@@ -143,15 +136,21 @@ const char* setup_html = R"rawliteral(
             <div id="hopConfig" class="section hidden">
                 <h3>Hop-Node Settings</h3>
                 <p class="description">This is an intermediate node. It creates a WiFi network for the previous node AND connects to the next node.</p>
+                <h4>AP Settings (For Previous Hop)</h4>
                 <div class="form-group">
-                    <label for="ap_ssid">AP SSID to Create (for previous hop):</label>
+                    <label for="ap_ssid">AP SSID to Create:</label>
                     <input type="text" id="ap_ssid" name="ap_ssid">
                 </div>
                 <div class="form-group">
                     <label for="ap_pass">AP Password to Create:</label>
                     <input type="password" id="ap_pass" name="ap_pass">
                 </div>
+                <div class="form-group">
+                    <label for="ap_ip">AP IP Address:</label>
+                    <input type="text" id="ap_ip" name="ap_ip" placeholder="e.g., 192.168.5.1">
+                </div>
                 <hr>
+                <h4>Client Settings (Connect to Next Hop)</h4>
                 <div class="form-group">
                     <label for="hop_sta_ssid">WiFi SSID of Next Hop:</label>
                     <input type="text" id="hop_sta_ssid" name="hop_sta_ssid">
@@ -162,7 +161,7 @@ const char* setup_html = R"rawliteral(
                 </div>
                 <div class="form-group">
                     <label for="hop_next_hop_ip">IP Address of Next Hop:</label>
-                    <input type="text" id="hop_next_hop_ip" name="hop_next_hop_ip" placeholder="e.g., 192.168.4.1">
+                    <input type="text" id="hop_next_hop_ip" name="hop_next_hop_ip" placeholder="e.g., 192.168.6.1">
                 </div>
             </div>
 
@@ -177,6 +176,10 @@ const char* setup_html = R"rawliteral(
                 <div class="form-group">
                     <label for="end_ap_pass">AP Password to Create:</label>
                     <input type="password" id="end_ap_pass" name="end_ap_pass">
+                </div>
+                <div class="form-group">
+                    <label for="end_ap_ip">AP IP Address:</label>
+                    <input type="text" id="end_ap_ip" name="end_ap_ip" placeholder="e.g., 192.168.4.1">
                 </div>
             </div>
 
@@ -262,10 +265,8 @@ void setup() {
 }
 
 void loop() {
-  // Web server only runs for Hop, End, and Setup modes
-  if (currentMode == "hop" || currentMode == "end" || currentMode == "setup") {
-    server.handleClient();
-  }
+  // Web server runs for all modes now to allow for reconfiguration
+  server.handleClient();
   
   // Periodic capture for all active nodes (Start, Hop, End)
   if (currentMode == "start" || currentMode == "hop" || currentMode == "end") {
@@ -300,17 +301,16 @@ bool initCamera() {
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
 
-  // init with high specs to pre-allocate larger buffers
   if (psramFound()) {
     config.frame_size = FRAMESIZE_QVGA;
     config.jpeg_quality = 4;  //0-63 lower number means higher quality
     config.fb_count = 2;
-    Serial.println("psram found");
+    Serial.println("PSRAM found");
   } else {
     config.frame_size = FRAMESIZE_QVGA;
-    config.jpeg_quality = 4;  //0-63 lower number means higher quality
+    config.jpeg_quality = 4;
     config.fb_count = 1;
-    Serial.println("psram not found");
+    Serial.println("PSRAM not found");
   }
 
   esp_err_t err = esp_camera_init(&config);
@@ -324,8 +324,8 @@ bool initCamera() {
 // --- Mode Initialization Functions ---
 
 void startStartNode() {
-  String ssid = preferences.getString("sta_ssid", "");
-  if (ssid.length() == 0) {
+  String sta_ssid = preferences.getString("sta_ssid", "");
+  if (sta_ssid.length() == 0) {
     Serial.println("Start-Node config invalid. Falling back to setup.");
     startSetupMode();
     return;
@@ -340,11 +340,30 @@ void startStartNode() {
     return;
   }
   
-  String pass = preferences.getString("sta_pass", "");
-  WiFi.begin(ssid.c_str(), pass.c_str());
-  Serial.printf("Connecting to next hop WiFi: %s\n", ssid.c_str());
+  // --- Configure both AP and STA mode ---
+  WiFi.mode(WIFI_AP_STA);
+
+  // Configure the re-setup AP
+  String ap_ssid = preferences.getString("start_ap_ssid", "ESP32-CAM-Start-Setup");
+  String ap_pass = preferences.getString("start_ap_pass", "");
+  String ap_ip_str = preferences.getString("start_ap_ip", "192.168.4.1");
+  IPAddress local_IP;
+  local_IP.fromString(ap_ip_str.c_str());
+  IPAddress gateway(local_IP);
+  IPAddress subnet(255, 255, 255, 0);
+  WiFi.softAPConfig(local_IP, gateway, subnet);
+  WiFi.softAP(ap_ssid.c_str(), ap_pass.c_str());
+  Serial.println("\n--- Start Node Re-Setup AP ---");
+  Serial.print("  SSID: "); Serial.println(ap_ssid);
+  Serial.print("  IP:   "); Serial.println(WiFi.softAPIP());
   
-  // WiFi connection will be checked in the periodic function
+  // Configure the client connection to the next hop
+  String sta_pass = preferences.getString("sta_pass", "");
+  WiFi.begin(sta_ssid.c_str(), sta_pass.c_str());
+  Serial.println("\n--- Start Node Client ---");
+  Serial.printf("Connecting to next hop WiFi: %s\n", sta_ssid.c_str());
+  
+  startConfigurationServer(); // For re-setup
   Serial.printf("Start-Node ready. Capturing every %lu ms.\n", actionInterval);
   lastActionTime = millis();
 }
@@ -364,24 +383,32 @@ void startHopNode() {
     return;
   }
 
-  String ap_pass = preferences.getString("ap_pass", "");
-  String sta_ssid = preferences.getString("hop_sta_ssid", "");
-  String sta_pass = preferences.getString("hop_sta_pass", "");
-
   WiFi.mode(WIFI_AP_STA);
+
+  // Configure AP for previous hop
+  String ap_pass = preferences.getString("ap_pass", "");
+  String ap_ip_str = preferences.getString("ap_ip", "192.168.4.1");
+  IPAddress local_IP;
+  local_IP.fromString(ap_ip_str.c_str());
+  IPAddress gateway(local_IP);
+  IPAddress subnet(255, 255, 255, 0);
+  WiFi.softAPConfig(local_IP, gateway, subnet);
   WiFi.softAP(ap_ssid.c_str(), ap_pass.c_str());
-  Serial.println("\n--- Hop Node ---");
-  Serial.println("AP Interface Started:");
+  Serial.println("\n--- Hop Node AP Interface ---");
   Serial.print("  SSID: "); Serial.println(ap_ssid);
   Serial.print("  IP:   "); Serial.println(WiFi.softAPIP());
 
+  // Configure client for next hop
+  String sta_ssid = preferences.getString("hop_sta_ssid", "");
+  String sta_pass = preferences.getString("hop_sta_pass", "");
   if (sta_ssid.length() > 0) {
     WiFi.begin(sta_ssid.c_str(), sta_pass.c_str());
-    Serial.println("STA Interface Connecting:");
-    Serial.print("  SSID: "); Serial.println(sta_ssid);
+    Serial.println("\n--- Hop Node Client Interface ---");
+    Serial.print("  Connecting to SSID: "); Serial.println(sta_ssid);
   }
 
-  startCameraServer(); // To receive hops
+  startConfigurationServer();
+  server.on("/hop", HTTP_POST, handleHopReceive); // Add the hop handler
   lastActionTime = millis();
 }
 
@@ -400,15 +427,21 @@ void startEndNode() {
     return;
   }
 
+  // Configure AP for the last hop
   String ap_pass = preferences.getString("end_ap_pass", "");
-
+  String ap_ip_str = preferences.getString("end_ap_ip", "192.168.4.1");
+  IPAddress local_IP;
+  local_IP.fromString(ap_ip_str.c_str());
+  IPAddress gateway(local_IP);
+  IPAddress subnet(255, 255, 255, 0);
+  WiFi.softAPConfig(local_IP, gateway, subnet);
   WiFi.softAP(ap_ssid.c_str(), ap_pass.c_str());
-  Serial.println("\n--- End Node ---");
-  Serial.println("AP Interface Started:");
+  Serial.println("\n--- End Node AP Interface ---");
   Serial.print("  SSID: "); Serial.println(ap_ssid);
   Serial.print("  IP:   "); Serial.println(WiFi.softAPIP());
 
-  startCameraServer(); // To receive the final hop
+  startConfigurationServer();
+  server.on("/hop", HTTP_POST, handleHopReceive); // Add the hop handler
   lastActionTime = millis();
 }
 
@@ -419,23 +452,21 @@ void startSetupMode() {
   Serial.println(WiFi.softAPIP());
   Serial.println("Connect to this network and go to http://192.168.4.1/setup");
 
-  server.on("/setup", HTTP_GET, handleSetupPage);
-  server.on("/saveconfig", HTTP_POST, handleSaveConfig);
+  startConfigurationServer();
   server.onNotFound([]() {
     server.sendHeader("Location", "/setup", true);
     server.send(302, "text/plain", "");
   });
-  server.begin();
 }
 
 // --- Web Server Handler Functions ---
 
-void startCameraServer() {
-  server.on("/hop", HTTP_POST, handleHopReceive);
+void startConfigurationServer() {
   server.on("/setup", HTTP_GET, handleSetupPage);
   server.on("/saveconfig", HTTP_POST, handleSaveConfig);
   server.onNotFound(handleNotFound);
   server.begin();
+  Serial.println("Configuration server started.");
 }
 
 void handleSetupPage() {
@@ -451,15 +482,20 @@ void handleSaveConfig() {
     preferences.putString("sta_ssid", server.arg("sta_ssid"));
     preferences.putString("sta_pass", server.arg("sta_pass"));
     preferences.putString("next_hop_ip", server.arg("next_hop_ip"));
+    preferences.putString("start_ap_ssid", server.arg("start_ap_ssid"));
+    preferences.putString("start_ap_pass", server.arg("start_ap_pass"));
+    preferences.putString("start_ap_ip", server.arg("start_ap_ip"));
   } else if (mode == "hop") {
     preferences.putString("ap_ssid", server.arg("ap_ssid"));
     preferences.putString("ap_pass", server.arg("ap_pass"));
+    preferences.putString("ap_ip", server.arg("ap_ip"));
     preferences.putString("hop_sta_ssid", server.arg("hop_sta_ssid"));
     preferences.putString("hop_sta_pass", server.arg("hop_sta_pass"));
     preferences.putString("hop_next_hop_ip", server.arg("hop_next_hop_ip"));
   } else if (mode == "end") {
     preferences.putString("end_ap_ssid", server.arg("end_ap_ssid"));
     preferences.putString("end_ap_pass", server.arg("end_ap_pass"));
+    preferences.putString("end_ap_ip", server.arg("end_ap_ip"));
   }
   
   preferences.putString("final_domain", server.arg("final_domain"));
@@ -475,52 +511,104 @@ void handleSaveConfig() {
 }
 
 void handleHopReceive() {
-  if (!server.hasArg("plain")) {
-    server.send(400, "text/plain", "Bad Request: No image data.");
-    return;
-  }
-  
-  String userToken = server.header("X-User-Token");
-  String deviceToken = server.header("X-Device-Token");
-  String finalDomain = server.header("X-Final-Domain");
-  String appCategory = server.header("X-App-Category");
-  const char* imageData = server.arg("plain").c_str();
-  size_t imageLen = server.arg("plain").length();
+  // Check if the request is multipart/form-data or plain binary
+  bool isMultipart = server.header("Content-Type").indexOf("multipart/form-data") != -1;
 
-  if (currentMode == "end") {
-    Serial.println("\n--- Image Received by END-NODE ---");
+  if (isMultipart) {
+    // This part handles forwarded images from other nodes which might be multipart
+    HTTPUpload& upload = server.upload();
+    if (upload.status == UPLOAD_FILE_START) {
+      // We don't need to save the file, just forward it.
+      // The content is in upload.buf
+    } else if (upload.status == UPLOAD_FILE_WRITE) {
+      // Buffer the data if necessary, for now we assume it fits in one go
+    } else if (upload.status == UPLOAD_FILE_END) {
+        String userToken = server.header("X-User-Token");
+        String deviceToken = server.header("X-Device-Token");
+        String finalDomain = server.header("X-Final-Domain");
+        String appCategory = server.header("X-App-Category");
+
+        camera_fb_t fb;
+        fb.buf = upload.buf;
+        fb.len = upload.currentSize;
+
+        if (currentMode == "end") {
+            Serial.println("\n--- Multipart Image Received by END-NODE ---");
+            sendImageToFinalDestination(&fb, finalDomain, userToken, deviceToken, appCategory);
+            server.send(200, "text/plain", "Image received and forwarded to final destination.");
+        } else if (currentMode == "hop") {
+            Serial.println("\n--- Multipart Image Received by HOP-NODE ---");
+            String nextHopIp = preferences.getString("hop_next_hop_ip", "");
+            if (nextHopIp.length() == 0) {
+                server.send(500, "text/plain", "Hop failed: This node has no next hop configured.");
+                return;
+            }
+            HTTPClient http;
+            String url = "http://" + nextHopIp + "/hop";
+            http.begin(url);
+            http.addHeader("Content-Type", "image/jpeg"); // Forward as plain jpeg
+            http.addHeader("X-User-Token", userToken);
+            http.addHeader("X-Device-Token", deviceToken);
+            http.addHeader("X-Final-Domain", finalDomain);
+            http.addHeader("X-App-Category", appCategory);
+            int httpResponseCode = http.POST(fb.buf, fb.len);
+            if (httpResponseCode > 0) {
+                server.send(200, "text/plain", "Image received and forwarded to next hop.");
+            } else {
+                server.send(502, "text/plain", "Bad Gateway: Could not forward to next hop.");
+            }
+            http.end();
+        }
+    }
+  } else if (server.hasArg("plain")) {
+    // This handles the direct binary post from the previous version for compatibility
+    String userToken = server.header("X-User-Token");
+    String deviceToken = server.header("X-Device-Token");
+    String finalDomain = server.header("X-Final-Domain");
+    String appCategory = server.header("X-App-Category");
+    
+    // The image data is in the request body
+    const char* imageData = server.arg("plain").c_str();
+    size_t imageLen = server.arg("plain").length();
+
     camera_fb_t fb;
-    fb.buf = (uint8_t *)imageData;
+    fb.buf = (uint8_t*)imageData;
     fb.len = imageLen;
-    sendImageToFinalDestination(&fb, finalDomain, userToken, deviceToken, appCategory);
-    server.send(200, "text/plain", "Image received and forwarded to final destination.");
 
-  } else if (currentMode == "hop") {
-    Serial.println("\n--- Image Received by HOP-NODE ---");
-    String nextHopIp = preferences.getString("hop_next_hop_ip", "");
-    if(nextHopIp.length() == 0) {
-      server.send(500, "text/plain", "Hop failed: This node has no next hop configured.");
-      return;
+    if (currentMode == "end") {
+      Serial.println("\n--- Plain Image Received by END-NODE ---");
+      sendImageToFinalDestination(&fb, finalDomain, userToken, deviceToken, appCategory);
+      server.send(200, "text/plain", "Image received and forwarded to final destination.");
+    } else if (currentMode == "hop") {
+      Serial.println("\n--- Plain Image Received by HOP-NODE ---");
+      String nextHopIp = preferences.getString("hop_next_hop_ip", "");
+      if(nextHopIp.length() == 0) {
+        server.send(500, "text/plain", "Hop failed: This node has no next hop configured.");
+        return;
+      }
+
+      HTTPClient http;
+      String url = "http://" + nextHopIp + "/hop";
+      http.begin(url);
+      http.addHeader("Content-Type", "image/jpeg");
+      http.addHeader("X-User-Token", userToken);
+      http.addHeader("X-Device-Token", deviceToken);
+      http.addHeader("X-Final-Domain", finalDomain);
+      http.addHeader("X-App-Category", appCategory);
+
+      int httpResponseCode = http.POST((uint8_t *)imageData, imageLen);
+      if (httpResponseCode > 0) {
+        server.send(200, "text/plain", "Image received and forwarded to next hop.");
+      } else {
+        server.send(502, "text/plain", "Bad Gateway: Could not forward to next hop.");
+      }
+      http.end();
     }
-
-    HTTPClient http;
-    String url = "http://" + nextHopIp + "/hop";
-    http.begin(url);
-    http.addHeader("Content-Type", "image/jpeg");
-    http.addHeader("X-User-Token", userToken);
-    http.addHeader("X-Device-Token", deviceToken);
-    http.addHeader("X-Final-Domain", finalDomain);
-    http.addHeader("X-App-Category", appCategory);
-
-    int httpResponseCode = http.POST((uint8_t *)imageData, imageLen);
-    if (httpResponseCode > 0) {
-      server.send(200, "text/plain", "Image received and forwarded to next hop.");
-    } else {
-      server.send(502, "text/plain", "Bad Gateway: Could not forward to next hop.");
-    }
-    http.end();
+  } else {
+      server.send(400, "text/plain", "Bad Request: No image data.");
   }
 }
+
 
 void handleNotFound() {
   server.send(404, "text/plain", "Not found. Try /setup");
@@ -534,9 +622,9 @@ void performPeriodicCapture() {
   // For modes that connect to another WiFi, check connection.
   if (currentMode == "start" || currentMode == "hop") {
     if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("WiFi disconnected. Reconnecting...");
+      Serial.println("WiFi disconnected from next hop. Reconnecting...");
       WiFi.reconnect();
-      if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+      if (WiFi.waitForConnectResult(5000) != WL_CONNECTED) {
         Serial.println("Reconnect failed. Skipping this capture.");
         return;
       }
@@ -618,30 +706,38 @@ void sendImageToFinalDestination(camera_fb_t *fb, String domain, String userToke
   
   http.begin(url);
   
+  // The server expects multipart/form-data, so we construct it manually.
   String boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
-  http.addHeader("Content-Type", "multipart/form-data; boundary=" + boundary);
+  String contentType = "multipart/form-data; boundary=" + boundary;
   
   String body_start = "--" + boundary + "\r\n";
   body_start += "Content-Disposition: form-data; name=\"imageFile\"; filename=\"capture.jpg\"\r\n";
   body_start += "Content-Type: image/jpeg\r\n\r\n";
+  
   String body_end = "\r\n--" + boundary + "--\r\n";
   
   size_t total_len = body_start.length() + fb->len + body_end.length();
   
-  WiFiClient *stream = http.getStreamPtr();
-  if (!stream) {
+  // We need to create a buffer to hold the entire payload
+  uint8_t *payload = new uint8_t[total_len];
+  if (!payload) {
+    Serial.println("Failed to allocate memory for payload");
     http.end();
     return;
   }
+
+  // Copy parts into the payload buffer
+  memcpy(payload, body_start.c_str(), body_start.length());
+  memcpy(payload + body_start.length(), fb->buf, fb->len);
+  memcpy(payload + body_start.length() + fb->len, body_end.c_str(), body_end.length());
+
+  int httpCode = http.POST(payload, total_len, contentType);
   
-  stream->print(body_start);
-  stream->write(fb->buf, fb->len);
-  stream->print(body_end);
-  
-  int httpCode = http.POST("");
+  delete[] payload; // Free the memory
+
   if (httpCode > 0) {
     Serial.printf("[HTTP] POST... code: %d\n", httpCode);
-    if (httpCode == HTTP_CODE_OK) {
+    if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_CREATED) {
       Serial.println(http.getString());
     }
   } else {
