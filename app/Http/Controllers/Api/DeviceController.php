@@ -349,6 +349,7 @@ class DeviceController extends Controller
         (
             SELECT MAX(id) as id from data_device
             GROUP BY device
+
         ) AS rd'
         ), 'data_device.id', '=', 'rd.id')
         ->join('device as dd', 'dd.id', '=', 'data_device.device')
@@ -375,12 +376,10 @@ class DeviceController extends Controller
             $latestData = $latestData->where(function($query) use($search) {
                 $query->where('device', 'LIKE', '%' . $search . '%')
                 ->orWhere('value', 'LIKE', '%' . $search . '%')
-                ->orWhere('created_at', 'LIKE', '%' . $search . '%');
+                ->orWhere('data_device.created_at', 'LIKE', '%' . $search . '%');
             })
-            ->orWhereHas('list_paid', function($query) use($search) {
-                $query->where('device', 'LIKE', '%' . $search . '%')
-                ->orWhere('value', 'LIKE', '%' . $search . '%')
-                ->orWhere('created_at', 'LIKE', '%' . $search . '%');
+            ->orWhereHas('device.pelanggan', function($query) use($search) {
+                $query->where('nik', 'LIKE', '%' . $search . '%');
             });
             // ->orWhere('device.nik', 'LIKE', '%' . $search . '%');
 
@@ -441,59 +440,78 @@ class DeviceController extends Controller
         $type_order = $request->get('type_order', NULL);
         $per_pages = $request->get('per_page', 10);
 
-        $data_device = DataDevice::select(
-            DB::raw('max(id) AS id'),
-            'device',
-            DB::raw('max(value) AS value'),
-            'is_paid',
-            DB::raw('max(images_source) AS images_source'),
-            DB::raw('max(execution_time) AS execution_time'),
-            DB::raw('MAX(created_at) as created_at')
-        );
+        // $data_device = DataDevice::select(
+        //     DB::raw('max(id) AS id'),
+        //     'device',
+        //     DB::raw('max(value) AS value'),
+        //     'is_paid',
+        //     DB::raw('max(images_source) AS images_source'),
+        //     DB::raw('max(execution_time) AS execution_time'),
+        //     DB::raw('MAX(created_at) as created_at')
+        // );
+
+        $latestData = DataDevice::select('data_device.*')
+        ->join(DB::raw('
+        (
+            SELECT MAX(id) as id from data_device
+            GROUP BY device
+
+        ) AS rd'
+        ), 'data_device.id', '=', 'rd.id')
+        ->join('device as dd', 'dd.id', '=', 'data_device.device')
+        ->with(['list_paid' => function($query){
+                $query->where('is_paid', 1);
+            },'device.pelanggan']);
         if ($search != NULL) {
-            $data_device->where(function ($query) use ($search) {
+            // $data_device->where(function ($query) use ($search) {
+            //     $query->where('device', 'LIKE', '%' . $search . '%')
+            //         ->orWhere('value', 'LIKE', '%' . $search . '%')
+            //         ->orWhere('created_at', 'LIKE', '%' . $search . '%');
+            // });
+
+            $latestData = $latestData->where(function($query) use($search) {
                 $query->where('device', 'LIKE', '%' . $search . '%')
-                    ->orWhere('value', 'LIKE', '%' . $search . '%')
-                    ->orWhere('created_at', 'LIKE', '%' . $search . '%');
+                ->orWhere('value', 'LIKE', '%' . $search . '%')
+                ->orWhere('data_device.created_at', 'LIKE', '%' . $search . '%');
             });
 
             if ($ordered != NULL) {
-                if ($ordered == 'nik') {
-                    $data_device->with(['device.pelanggan' => function ($query) use ($search, $type_order) {
-                        $query->select('nik', 'nama')->where('nik', 'LIKE', '%' . $search . '%')->orderBy('nik', $type_order);
-                    }]);
-                } else {
-                    $data_device->with(['device.pelanggan' => function ($query) use ($search) {
-                        $query->select('nik', 'nama')->where('nik', 'LIKE', '%' . $search . '%');
-                    }])->orderBy($ordered, $type_order);
-                }
-            } else {
-                $data_device->with(['device.pelanggan' => function ($query) use ($search) {
-                    $query->select('nik', 'nama')->where('nik', 'LIKE', '%' . $search . '%');
-                }]);
-            }
+                // if ($ordered == 'nik') {
+                //     $data_device->with(['device.pelanggan' => function ($query) use ($search, $type_order) {
+                //         $query->select('nik', 'nama')->where('nik', 'LIKE', '%' . $search . '%')->orderBy('nik', $type_order);
+                //     }]);
+                // } else {
+                //     $data_device->with(['device.pelanggan' => function ($query) use ($search) {
+                //         $query->select('nik', 'nama')->where('nik', 'LIKE', '%' . $search . '%');
+                //     }])->orderBy($ordered, $type_order);
+
+                $latestData = $latestData->orderBy($ordered, $type_order);
+            } 
+            // else {
+            //     $data_device->with(['device.pelanggan' => function ($query) use ($search) {
+            //         $query->select('nik', 'nama')->where('nik', 'LIKE', '%' . $search . '%');
+            //     }]);
+            // }
         } else {
             if ($ordered != NULL) {
-                if ($ordered == 'nik') {
-                    $data_device->with(['device.pelanggan' => function ($query) use ($search, $type_order) {
-                        $query->select('nik', 'nama')->orderBy('nik', $type_order);
-                    }]);
-                } else {
-                    $data_device->with(['device.pelanggan' => function ($query) use ($search) {
-                        $query->select('nik', 'nama');
-                    }])->orderBy($ordered, $type_order);
-                }
-            } else {
-                $data_device->with(['device.pelanggan' => function ($query) use ($search) {
-                    $query->select('nik', 'nama');
-                }]);
-            }
+                $latestData = $latestData->orderBy($ordered, $type_order);
+            } 
+            // else {
+            //     $data_device->with(['device.pelanggan' => function ($query) use ($search) {
+            //         $query->select('nik', 'nama');
+            //     }]);
+            // }
         }
 
-        $data_device->whereHas('device', function ($query) use ($pelanggan) {
+        // $data_device->whereHas('device', function ($query) use ($pelanggan) {
+        //     $query->where('nik', $pelanggan->nik);
+        // });
+
+        $latestData = $latestData->whereHas('device', function ($query) use ($pelanggan) {
             $query->where('nik', $pelanggan->nik);
         });
-        return $data_device->groupBy('device', 'is_paid')->paginate($per_pages);
+        // return $data_device->groupBy('device', 'is_paid')->paginate($per_pages);
+        return $latestData->paginate($per_pages);
         // return $data_device->groupBy('device', 'is_paid')->get();
     }
     function responses($status, $message, $data = array())
