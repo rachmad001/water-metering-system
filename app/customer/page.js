@@ -2,6 +2,69 @@
 import './style.css'
 import { useState, useEffect, useMemo } from 'react';
 
+const HistoryModal = ({ row, onClose }) => {
+    return (
+        <div className="fixed w-full h-full bg-[rgba(190,190,190,0.3)] flex justify-center items-center z-50">
+            <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-lg">
+                <div className="flex justify-between items-center border-b pb-4 mb-4">
+                    <h3 className="text-2xl font-semibold text-gray-800">Payment History: {row.device.id}</h3>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
+                </div>
+                <table className="min-w-full divide-y divide-gray-200 border rounded-lg">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Image
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Value
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-100">
+                        {row.list_paid.slice().reverse().map((item, index) => (
+                            <tr key={index}>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="w-[100px] h-[100px] relative">
+                                        <img
+                                            src={process.env.NEXT_PUBLIC_ASSET_URL + item.images_source}
+                                            alt="Item Image"
+                                            width={100}
+                                            height={100}
+                                            className="rounded"
+                                        />
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    {item.value}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${item.is_paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{item.is_paid ? 'Paid' : 'Unpaid'}</span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    {date_format(item.created_at)}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    )
+}
+
+const date_format = (dates) => {
+    var tanggal = new Date(dates);
+
+    return tanggal.getFullYear() + "-" + tanggal.getMonth() + "-" + tanggal.getDate();
+}
+
 export default function Customer() {
     const [profile, setProfile] = useState()
 
@@ -15,6 +78,7 @@ export default function Customer() {
     const [sortConfig, setSortConfig] = useState({ key: 'nik', direction: 'asc' });
     const [selectedRow, setSelectedRow] = useState(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isModalHistoryOpen, setIsModalHistoryOpen] = useState(false);
 
     const [perPages, setPerPages] = useState(10)
     const [pages, setPages] = useState(1);
@@ -126,6 +190,16 @@ export default function Customer() {
             <span>{bill}</span>
         )
     }
+
+    const handleHistory = (row) => {
+        setSelectedRow(row);
+        setIsModalHistoryOpen(true);
+    };
+
+    const handleCloseModalHistory = () => {
+        setIsModalHistoryOpen(false);
+        setSelectedRow(null);
+    };
     return (
         <div className="w-full h-full flex items-center justify-center  grid-rows-2 gap-4 bg-[#E3F4F6]">
             <div className="flex flex-col w-[70%] h-full">
@@ -201,6 +275,7 @@ export default function Customer() {
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                     
                                 </tr>
                             </thead>
@@ -212,7 +287,9 @@ export default function Customer() {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{row.value}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><GetBill tokenDevice={row.device.token} id={row.id} /></td>
                                         <td className="px-6 py-4 whitespace-nowrap"><span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${row.is_paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{row.is_paid ? 'Paid' : 'Unpaid'}</span></td>
-                                        <td className="px-6 py-4 "><img src={process.env.NEXT_PUBLIC_ASSET_URL + row.images_source} alt={`Image for ${row.id}`} className="w-[200px] h-[130px] shadow-sm" /></td>
+                                        <td className="px-6 py-4 "><img src={process.env.NEXT_PUBLIC_ASSET_URL + row.images_source} alt={`Image for ${row.id}`} className="w-[200px] h-[130px] object-contain shadow-sm" /></td>
+                                        <td className="px-6 py-4 "><button onClick={() => handleHistory(row)} className="ms-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded shadow">History</button></td>
+
                                     </tr>
                                 ))}
                             </tbody>
@@ -250,6 +327,7 @@ export default function Customer() {
                     </div>
                 </div>
             </div>
+            {isModalHistoryOpen && <HistoryModal row={selectedRow} onClose={handleCloseModalHistory} />}
         </div>
     )
 }

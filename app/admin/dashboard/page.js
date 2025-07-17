@@ -88,8 +88,8 @@ const EditModal = ({ row, onClose, onSave }) => {
 
 const HistoryModal = ({ row, onClose }) => {
     return (
-        <div className="fixed inset-0 bg-[rgba(190,190,190,0.3)] flex justify-center items-center z-50">
-            <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md">
+        <div className="fixed w-full h-full bg-[rgba(190,190,190,0.3)] flex justify-center items-center z-50">
+            <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-lg">
                 <div className="flex justify-between items-center border-b pb-4 mb-4">
                     <h3 className="text-2xl font-semibold text-gray-800">Payment History: {row.device.id}</h3>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
@@ -105,6 +105,9 @@ const HistoryModal = ({ row, onClose }) => {
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Status
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date
                             </th>
                         </tr>
                     </thead>
@@ -128,6 +131,9 @@ const HistoryModal = ({ row, onClose }) => {
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${item.is_paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{item.is_paid ? 'Paid' : 'Unpaid'}</span>
                                 </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    {date_format(item.created_at)}
+                                </td>
                             </tr>
                         ))}
                     </tbody>
@@ -135,6 +141,12 @@ const HistoryModal = ({ row, onClose }) => {
             </div>
         </div>
     )
+}
+
+const date_format = (dates) => {
+    var tanggal = new Date(dates);
+
+    return tanggal.getFullYear() + "-" + tanggal.getMonth() + "-" + tanggal.getDate();
 }
 
 export default function App() {
@@ -276,12 +288,6 @@ export default function App() {
 
         handleCloseEditModal();
     };
-
-    const date_format = (dates) => {
-        var tanggal = new Date(dates);
-
-        return tanggal.getFullYear() + "-" + tanggal.getMonth() + "-" + tanggal.getDate();
-    }
 
     const GetBill = ({ tokenDevice, id }) => {
         const [bill, setBill] = useState('Loading...');
