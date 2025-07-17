@@ -20,4 +20,5 @@ Route::get('data-device/{tokenDevice}', [DeviceController::class, 'get_data'])->
 Route::get('bill/{tokenDevice}/{id}', [DeviceController::class, 'getBill']);
 
 Route::get('data-dashboard-customer', [DeviceController::class, 'data_customer_dashboard'])->middleware(User::class);
+Route::get('data-dashboard-customer-history', [DeviceController::class, 'data_customer_dashboard_history'])->middleware(User::class);
 
