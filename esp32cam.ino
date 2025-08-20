@@ -1,14 +1,3 @@
-/*
-  Rui Santos
-  Complete project details at https://RandomNerdTutorials.com/esp32-cam-post-image-photo-server/
-  
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files.
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-*/
-
 #include <Arduino.h>
 #include <WiFi.h>
 #include "soc/soc.h"
@@ -34,7 +23,7 @@ WiFiClient client;
 #define CAMERA_MODEL_AI_THINKER  // Has PSRAM
 #include "camera_pins.h"
 
-const int timerInterval = 10000;        // time between each HTTP POST image
+const int timerInterval = 10000;        // time between each HTTP POST image interval 1d = 24*60*60*1000
 unsigned long previousMillis = 0;      // last time image was sent
 unsigned long previousMillisLive = 0;  // last time image was sent
 int statusRunning = 0;
@@ -207,34 +196,6 @@ String sendPhoto() {
       }
       localPreviousMillis = currentMillis;
       if (getBody.length() > 0) { break; }
-
-      // if (currentMillis - localPreviousMillis >= 100) {
-      //   while (client.available()) {
-      //     char c = client.read();
-      //     if (c == '\n') {
-      //       if (getAll.length() == 0) { state = true; }
-      //       getAll = "";
-      //     } else if (c != '\r') {
-      //       getAll += String(c);
-      //     }
-      //     if (state == true) { getBody += String(c); }
-      //     startTimer = millis();
-      //   }
-      //   localPreviousMillis = currentMillis;
-      //   if (getBody.length() > 0) { break; }
-      // } else {
-      //   if (Serial.available()) {
-      //     String texts = Serial.readString();
-      //     if (texts == "777") {
-      //       statusRunning = 1;
-      //       Serial.println("Running to OCR");
-      //     }
-      //     if (texts == "111") {
-      //       statusRunning = 0;
-      //       Serial.println("Stopping from OCR");
-      //     }
-      //   }
-      // }
     }
     Serial.println();
     client.stop();
@@ -342,34 +303,6 @@ String sendLivePhoto() {
       }
       localPreviousMillis = currentMillis;
       if (getBody.length() > 0) { break; }
-
-      // if (currentMillis - localPreviousMillis >= 100) {
-      //   while (client.available()) {
-      //     char c = client.read();
-      //     if (c == '\n') {
-      //       if (getAll.length() == 0) { state = true; }
-      //       getAll = "";
-      //     } else if (c != '\r') {
-      //       getAll += String(c);
-      //     }
-      //     if (state == true) { getBody += String(c); }
-      //     startTimer = millis();
-      //   }
-      //   localPreviousMillis = currentMillis;
-      //   if (getBody.length() > 0) { break; }
-      // } else {
-      //   if (Serial.available()) {
-      //     String texts = Serial.readString();
-      //     if (texts == "777") {
-      //       statusRunning = 1;
-      //       Serial.println("Running to OCR");
-      //     }
-      //     if (texts == "111") {
-      //       statusRunning = 0;
-      //       Serial.println("Stopping from OCR");
-      //     }
-      //   }
-      // }
     }
     Serial.println();
     client.stop();
