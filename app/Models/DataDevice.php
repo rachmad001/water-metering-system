@@ -37,7 +37,7 @@ class DataDevice extends Model
         $device = device::where('id', $this->device);
         $device = $device->get()[0];
 
-        $latest_payment = DataDevice::where('device', $device->id)->where('is_paid', 1)->where('id', '<', $this->id)->orderBy('created_at', 'desc')->first()?->value ?? 0;
+        $latest_payment = DataDevice::where('device', $device->id)->where('is_paid', 1)->where('id', '<', $this->id)->orderBy('created_at', 'desc')->first()?->value ?? $device->default_meter;
         $latest_data = DataDevice::where('id', $this->id)->where('device', $device->id)->first()->value;
         if ($latest_payment > $latest_data) {
             $selisih = 100000 - $latest_payment;

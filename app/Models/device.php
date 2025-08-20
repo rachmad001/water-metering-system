@@ -17,6 +17,7 @@ class device extends Model
         'alamat',
         'nik',
         'category',
+        'default_meter',
         'token'
     ];
 

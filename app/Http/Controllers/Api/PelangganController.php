@@ -109,7 +109,8 @@ class PelangganController extends Controller
             'nama' => 'required',
             'alamat' => 'required',
             'nik' => 'required',
-            'harga' => 'required'
+            'harga' => 'required',
+            'default_meter' => 'required'
         ]);
 
         if ($validator->fails()) {
@@ -127,6 +128,7 @@ class PelangganController extends Controller
             'alamat' => $request->alamat,
             'nik' => $request->nik,
             'category' => $request->harga,
+            'default_meter' => $request->default_meter,
             'token' => $token
         ]);
 

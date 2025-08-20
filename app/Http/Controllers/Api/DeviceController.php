@@ -51,6 +51,7 @@ class DeviceController extends Controller
             'alamat' => 'required',
             'nik' => 'required',
             'id' => 'required',
+            'default_meter' => 'required',
             'harga' => 'required|exists:customer_category,id'
         ]);
 
@@ -62,7 +63,8 @@ class DeviceController extends Controller
             'nama' => $request->nama,
             'alamat' => $request->alamat,
             'nik' => $request->nik,
-            'category' => $request->harga
+            'category' => $request->harga,
+            'default_meter' => $request->default_meter,
         ];
 
         $check_nik = Pelanggan::where('nik', $request->nik);
@@ -281,7 +283,7 @@ class DeviceController extends Controller
             return response($this->responses(false, 'Data tidak ditemukan'), 404);
         }
         // $harga = $device->harga;
-        $latest_payment = DataDevice::where('device', $device->id)->where('is_paid', 1)->where('id', '<', $id)->orderBy('created_at', 'desc')->first()?->value ?? 0;
+        $latest_payment = DataDevice::where('device', $device->id)->where('is_paid', 1)->where('id', '<', $id)->orderBy('created_at', 'desc')->first()?->value ?? $device->default_meter;
         $latest_data = DataDevice::where('id', $id)->where('device', $device->id)->first()->value;
         if ($latest_payment > $latest_data) {
             $selisih = 100000 - $latest_payment;
@@ -463,19 +465,21 @@ class DeviceController extends Controller
         //     DB::raw('MAX(created_at) as created_at')
         // );
 
-        $latestData = DataDevice::select('data_device.*')
-            ->join(DB::raw(
-                '
-        (
-            SELECT MAX(id) as id from data_device
-            GROUP BY device
-
-        ) AS rd'
-            ), 'data_device.id', '=', 'rd.id')
-            ->join('device as dd', 'dd.id', '=', 'data_device.device')
-            ->with(['list_paid' => function ($query) {
-                $query->where('is_paid', 1);
-            }, 'device.pelanggan']);
+        $latest_bill = DataDevice::select(DB::raw('MAX(id) as id'))
+            ->groupBy('device')
+            ->whereHas('device', function ($query) use ($pelanggan) {
+                $query->where('nik', $pelanggan->nik);
+            })
+            ->pluck('id') // Ambil hanya kolom 'id'
+            ->toArray();
+        $list_payment = DataDevice::whereHas('device', function ($query) use ($pelanggan) {
+            $query->where('nik', $pelanggan->nik);
+        })
+            ->where('is_paid', 1)
+            ->pluck('id') // Ambil hanya kolom 'id'
+            ->toArray();
+        $list = array_merge($latest_bill, $list_payment);
+        $latestData = DataDevice::with('device.pelanggan')->whereIn('id', $list);
         if ($search != NULL) {
             // $data_device->where(function ($query) use ($search) {
             //     $query->where('device', 'LIKE', '%' . $search . '%')
@@ -524,8 +528,13 @@ class DeviceController extends Controller
         $latestData = $latestData->whereHas('device', function ($query) use ($pelanggan) {
             $query->where('nik', $pelanggan->nik);
         });
+
+        $paginated = $latestData->paginate($per_pages);
+
+        // Tambahkan attribute 'bill' ke setiap item
+        $paginated->getCollection()->each->append('bill');
         // return $data_device->groupBy('device', 'is_paid')->paginate($per_pages);
-        return $latestData->paginate($per_pages);
+        return $paginated;
         // return $data_device->groupBy('device', 'is_paid')->get();
     }
 
